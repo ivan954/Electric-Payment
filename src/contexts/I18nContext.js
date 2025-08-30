@@ -26,6 +26,10 @@ const translations = {
     loginToEdit: "Login to edit",
     close: "Close",
     confirmDelete: "Are you sure?",
+    confirmLeaveTitle: "Discard changes?",
+    confirmLeaveBody: "Your unsaved changes will be lost.",
+    stay: "Continue editing",
+    leave: "Leave",
     // Auth/Create/Update screens
     signInTitle: "Sign In",
     emailAddress: "Email Address",
@@ -64,6 +68,10 @@ const translations = {
     loginToEdit: "התחבר כדי לערוך",
     close: "סגור",
     confirmDelete: "האם אתה בטוח?",
+    confirmLeaveTitle: "לבטל שינויים?",
+    confirmLeaveBody: "השינויים שלא נשמרו ייאבדו.",
+    stay: "המשך עריכה",
+    leave: "צא",
     // Auth/Create/Update screens
     signInTitle: "התחברות",
     emailAddress: "כתובת אימייל",

@@ -4,6 +4,7 @@ import {
   Col,
   Container,
   FormControl,
+  InputGroup,
   Modal,
   Row,
   Table,
@@ -133,15 +134,59 @@ const ManageScreen = () => {
               )}
             </Col>
             <Col xs={12} md={6} className="p-2">
-              <FormControl
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                }}
-                type="text"
-                placeholder={t("searchPlaceholder")}
-                className="w-100 payments-search"
-                value={searchTerm}
-              />
+              <InputGroup className="payments-search-group">
+                {dir === "rtl" ? (
+                  <>
+                    <InputGroup.Text>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 16 16"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" />
+                      </svg>
+                    </InputGroup.Text>
+                    <FormControl
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                      }}
+                      type="text"
+                      placeholder={t("searchPlaceholder")}
+                      className="payments-search"
+                      value={searchTerm}
+                      aria-label="Search payments"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <InputGroup.Text>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 16 16"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" />
+                      </svg>
+                    </InputGroup.Text>
+                    <FormControl
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                      }}
+                      type="text"
+                      placeholder={t("searchPlaceholder")}
+                      className="payments-search"
+                      value={searchTerm}
+                      aria-label="Search payments"
+                    />
+                  </>
+                )}
+              </InputGroup>
             </Col>
           </Row>
 
