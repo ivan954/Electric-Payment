@@ -5,6 +5,7 @@ import "./index.css";
 import store from "./store";
 import App from "./App";
 import "./bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import reportWebVitals from "./reportWebVitals";
 import { I18nProvider } from "./contexts/I18nContext";
 

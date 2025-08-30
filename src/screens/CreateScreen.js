@@ -116,17 +116,7 @@ const CreateScreen = () => {
     <Container dir={dir}>
       <FormContainer>
         <div className="form-hero">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            className="form-hero-icon"
-            aria-hidden="true"
-          >
-            <path
-              fill="currentColor"
-              d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"
-            />
-          </svg>
+          <i className="bi bi-plus-circle form-hero-icon"></i>
           <h1 className="m-0">{t("createPayment")}</h1>
         </div>
 
@@ -140,26 +130,17 @@ const CreateScreen = () => {
                   <Form.Label>{t("isPaidQ")}</Form.Label>
                   <InputGroup className="input-icon-group">
                     <InputGroup.Text>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 16 16"
-                        width="16"
-                        height="16"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M13.485 1.929 6 9.414 2.515 5.929 1.1 7.343 6 12.243l8.485-8.485z"
-                        />
-                      </svg>
+                      <i className="bi bi-check-lg"></i>
                     </InputGroup.Text>
-                    <Form.Control
+                    <Form.Select
                       required
-                      type="text"
-                      min={0}
-                      placeholder={t("isPaidPlaceholder")}
                       value={paid}
                       onChange={(e) => setPaid(e.target.value)}
-                    />
+                    >
+                      <option value="">--</option>
+                      <option value="Yes">{t("yes")}</option>
+                      <option value="No">{t("no")}</option>
+                    </Form.Select>
                   </InputGroup>
                 </Form.Group>
 
@@ -168,17 +149,7 @@ const CreateScreen = () => {
                   <Form.Label>{t("kwh")}</Form.Label>
                   <InputGroup className="input-icon-group">
                     <InputGroup.Text>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width="16"
-                        height="16"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M13 2L3 14h7v8l10-12h-7z"
-                        />
-                      </svg>
+                      <i className="bi bi-lightning-charge"></i>
                     </InputGroup.Text>
                     <Form.Control
                       required
@@ -200,17 +171,7 @@ const CreateScreen = () => {
                   <Form.Label>{t("date")}</Form.Label>
                   <InputGroup className="input-icon-group">
                     <InputGroup.Text>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 16 16"
-                        width="16"
-                        height="16"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M3 0a1 1 0 0 1 1 1v1h8V1a1 1 0 1 1 2 0v1h1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h1V1a1 1 0 0 1 1-1zM2 6v8h12V6H2z"
-                        />
-                      </svg>
+                      <i className="bi bi-calendar3"></i>
                     </InputGroup.Text>
                     <Form.Control
                       required

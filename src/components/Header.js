@@ -52,28 +52,34 @@ const Header = () => {
               <>
                 <LinkContainer to="/create">
                   <Nav.Link>
-                    <i className="fas fa-shopping-cart"></i>{" "}
+                    <i className="bi bi-plus-circle nav-icon"></i>
                     {t("createPayment")}
                   </Nav.Link>
                 </LinkContainer>
                 <LinkContainer to="/">
                   <Nav.Link>
-                    <i className="fas fa-shopping-cart"></i>{" "}
+                    <i className="bi bi-table nav-icon"></i>
                     {t("managePayment")}
                   </Nav.Link>
                 </LinkContainer>
-                <Nav.Link onClick={logoutHandler}>{t("logout")}</Nav.Link>
+                <Nav.Link onClick={logoutHandler}>
+                  <i className="bi bi-box-arrow-right nav-icon"></i>
+                  {t("logout")}
+                </Nav.Link>
               </>
             ) : (
               <>
                 <LinkContainer to="/">
                   <Nav.Link>
-                    <i className="fas fa-shopping-cart"></i>{" "}
+                    <i className="bi bi-table nav-icon"></i>
                     {t("managePayment")}
                   </Nav.Link>
                 </LinkContainer>
                 <LinkContainer to="/login">
-                  <Nav.Link>{t("login")}</Nav.Link>
+                  <Nav.Link>
+                    <i className="bi bi-box-arrow-in-right nav-icon"></i>
+                    {t("login")}
+                  </Nav.Link>
                 </LinkContainer>
               </>
             )}
