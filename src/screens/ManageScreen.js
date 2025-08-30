@@ -208,11 +208,19 @@ const ManageScreen = () => {
               ))}
             </tbody>
           </Table>
+
           {/* Pagination */}
           <ul className="pagination justify-content-center">
             {Array.from({ length: totalPages }, (_, i) => (
-              <li key={i} className="page-item">
-                <Button onClick={() => paginate(i + 1)} className="page-link">
+              <li
+                key={i}
+                className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
+              >
+                <Button
+                  onClick={() => paginate(i + 1)}
+                  className="page-link"
+                  aria-current={currentPage === i + 1 ? "page" : undefined}
+                >
                   {i + 1}
                 </Button>
               </li>
