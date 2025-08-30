@@ -6,11 +6,14 @@ import store from "./store";
 import App from "./App";
 import "./bootstrap.min.css";
 import reportWebVitals from "./reportWebVitals";
+import { I18nProvider } from "./contexts/I18nContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
-    <App />
+    <I18nProvider>
+      <App />
+    </I18nProvider>
   </Provider>
 );
 

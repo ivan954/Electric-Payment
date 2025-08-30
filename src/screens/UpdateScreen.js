@@ -16,6 +16,7 @@ import {
   PAYMENT_LIST_RESET,
   KWH_RESET,
 } from "../constants/electricConstants";
+import { useI18n } from "../contexts/I18nContext";
 
 const UpdateScreen = () => {
   const [KWH, setKwh] = useState(0);
@@ -29,6 +30,7 @@ const UpdateScreen = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t, dir } = useI18n();
 
   const electricDetalis = useSelector((state) => state.electricDetalis);
   const { loading, error, payment } = electricDetalis;
@@ -62,20 +64,20 @@ const UpdateScreen = () => {
   }, [dispatch, navigate, id, payment, successUpdate]);
 
   return (
-    <Container>
+    <Container dir={dir}>
       <FormContainer>
         {loading && <Loader />}
         {error && <Message variant="danger">{error}</Message>}
-        <h1>Update Payment</h1>
+        <h1>{t("updatePaymentTitle")}</h1>
 
         <Form onSubmit={createProductHandler}>
           <br />
           <Form.Group controlId="catalogNumber">
-            <Form.Label>is Paid ? </Form.Label>
+            <Form.Label>{t("isPaidQ")} </Form.Label>
             <Form.Control
               type="text"
               min={0}
-              placeholder="Is Paid"
+              placeholder={t("isPaidPlaceholder")}
               value={paid ?? ""}
               onChange={(e) => setPaid(e.target.value)}
             ></Form.Control>
@@ -83,10 +85,10 @@ const UpdateScreen = () => {
 
           <br />
           <Form.Group controlId="KWH">
-            <Form.Label>KWH</Form.Label>
+            <Form.Label>{t("kwh")}</Form.Label>
             <Form.Control
               type="number"
-              placeholder="Enter KWH"
+              placeholder={t("enterKwh")}
               min={0}
               value={KWH ?? 0}
               onChange={(e) => {
@@ -97,7 +99,7 @@ const UpdateScreen = () => {
 
           <br />
           <Form.Group controlId="Data">
-            <Form.Label>Data</Form.Label>
+            <Form.Label>{t("date")}</Form.Label>
             <Form.Control
               type="date"
               value={date ?? ""}
@@ -108,10 +110,10 @@ const UpdateScreen = () => {
 
             <br />
             <Form.Group controlId="image">
-              <Form.Label>Image</Form.Label>
+              <Form.Label>{t("image")}</Form.Label>
               <Form.Control
                 type="file"
-                placeholder="Enter image URL"
+                placeholder={t("image")}
                 onChange={(e) => {
                   setFile(e.target.files[0]);
                 }}
@@ -120,11 +122,11 @@ const UpdateScreen = () => {
 
             <br />
             <Form.Group controlId="price">
-              <Form.Label>Price</Form.Label>
+              <Form.Label>{t("price")}</Form.Label>
               <Form.Control
                 type="number"
                 disabled
-                placeholder="Enter price"
+                placeholder={t("enterPrice")}
                 value={price ?? 0}
               ></Form.Control>
             </Form.Group>
@@ -132,17 +134,17 @@ const UpdateScreen = () => {
           <br />
 
           <Button className="me-5" type="submit" variant="primary">
-            Update
+            {t("update")}
           </Button>
           <Button
             onClick={() => {
-              if (window.confirm("are you sure ? the Data will be lost")) {
+              if (window.confirm(t("confirmCancel"))) {
                 navigate("/manage");
               }
             }}
             className="btn btn-dark my-3"
           >
-            Cancel
+            {t("cancel")}
           </Button>
         </Form>
       </FormContainer>

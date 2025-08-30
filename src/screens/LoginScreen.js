@@ -6,6 +6,7 @@ import Message from "../components/Message";
 import Loader from "../components/Loader";
 import { loginToPaiments } from "../actions/electricActions";
 import { useNavigate } from "react-router-dom";
+import { useI18n } from "../contexts/I18nContext";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ const LoginScreen = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t, dir } = useI18n();
 
   const login = useSelector((state) => state.login);
   const { loading, error } = login;
@@ -29,15 +31,15 @@ const LoginScreen = () => {
   }, []);
 
   return (
-    <Container>
+    <Container dir={dir}>
       <FormContainer>
-        <h1>Sign In</h1>
+        <h1>{t("signInTitle")}</h1>
         <Form onSubmit={submitHandler}>
           <Form.Group controlId="email">
-            <Form.Label>Email Address</Form.Label>
+            <Form.Label>{t("emailAddress")}</Form.Label>
             <Form.Control
               type="email"
-              placeholder="Enter email"
+              placeholder={t("enterEmail")}
               autoComplete="on"
               value={email ?? ""}
               onChange={(e) => setEmail(e.target.value)}
@@ -45,10 +47,10 @@ const LoginScreen = () => {
           </Form.Group>
 
           <Form.Group controlId="password">
-            <Form.Label>Password</Form.Label>
+            <Form.Label>{t("password")}</Form.Label>
             <Form.Control
               type="password"
-              placeholder="Enter password"
+              placeholder={t("enterPassword")}
               autoComplete="on"
               value={password ?? ""}
               onChange={(e) => setPassword(e.target.value)}
@@ -56,11 +58,13 @@ const LoginScreen = () => {
           </Form.Group>
           <br />
           <Button type="submit" variant="primary">
-            Sign In
+            {t("signIn")}
           </Button>
         </Form>
         <br />
-        {error && <Message variant="danger">Wrong email or password!</Message>}
+        {error && (
+          <Message variant="danger">{t("wrongEmailOrPassword")}</Message>
+        )}
         {loading && <Loader />}
       </FormContainer>
     </Container>

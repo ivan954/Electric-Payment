@@ -14,6 +14,7 @@ import {} from "react-router-dom";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
 import LazyImage from "../components/LazyImage";
+import { useI18n } from "../contexts/I18nContext";
 import {
   listPayments,
   deletePayment,
@@ -37,11 +38,12 @@ const ManageScreen = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const dispatch = useDispatch();
+  const { t, dir } = useI18n();
 
   const userInfo = window.localStorage.getItem("userInfo");
 
   const deleteHandler = (id, image) => {
-    if (userInfo && window.confirm("Are you sure")) {
+    if (userInfo && window.confirm(t("confirmDelete"))) {
       dispatch(deletePayment(id, image));
     }
   };
@@ -107,7 +109,7 @@ const ManageScreen = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
-    <div>
+    <div dir={dir}>
       {loading ? (
         <Loader />
       ) : error ? (
@@ -122,21 +124,21 @@ const ManageScreen = () => {
                 <div className="ManageTitles">
                   {latestPayment && (
                     <>
-                      KWH: {latestPayment.KWH}
+                      {t("kwh")}: {latestPayment.KWH}
                       <br />
-                      Last update: {formatDateString(latestPayment.date)}
+                      {t("lastUpdate")}: {formatDateString(latestPayment.date)}
                     </>
                   )}
                 </div>
               )}
             </Col>
-            <Col xs={12} md={6}>
+            <Col xs={12} md={6} className="p-2">
               <FormControl
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                 }}
                 type="text"
-                placeholder="Search by date, paid, kWh, price..."
+                placeholder={t("searchPlaceholder")}
                 className="w-100 payments-search"
                 value={searchTerm}
               />
@@ -151,18 +153,18 @@ const ManageScreen = () => {
           >
             <thead>
               <tr>
-                <th>IMAGE</th>
-                <th>kWh</th>
-                <th>Paid Date</th>
-                <th>Price</th>
-                <th>Paid</th>
-                <th>Actions</th>
+                <th>{t("image")}</th>
+                <th>{t("kwh")}</th>
+                <th>{t("paidDate")}</th>
+                <th>{t("price")}</th>
+                <th>{t("paid")}</th>
+                <th>{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
               {currentPayments.map((payment) => (
                 <tr key={payment.id}>
-                  <td data-label="IMAGE">
+                  <td data-label={t("image")}>
                     <Button variant="outline-light">
                       <LazyImage
                         onClick={() => openModal(payment.image)}
@@ -172,21 +174,21 @@ const ManageScreen = () => {
                       />
                     </Button>
                   </td>
-                  <td data-label="kWh">{payment.KWH}</td>
-                  <td data-label="Paid Date">
+                  <td data-label={t("kwh")}>{payment.KWH}</td>
+                  <td data-label={t("paidDate")}>
                     <span className="date-cell">
                       {formatDateString(payment.date)}
                     </span>
                   </td>
-                  <td data-label="Price">{payment.price.toFixed(2)}</td>
-                  <td data-label="Paid">{payment.paid}</td>
-                  <td data-label="Actions">
+                  <td data-label={t("price")}>{payment.price.toFixed(2)}</td>
+                  <td data-label={t("paid")}>{payment.paid}</td>
+                  <td data-label={t("actions")}>
                     <div className="updateDeleteDiv">
                       {userInfo ? (
                         <>
                           <LinkContainer to={`/manage/${payment.id}`}>
                             <Button variant="info rounded" className="btn-sm">
-                              UPDATE
+                              {t("update")}
                             </Button>
                           </LinkContainer>{" "}
                           <Button
@@ -196,11 +198,11 @@ const ManageScreen = () => {
                               deleteHandler(payment.id, payment.image)
                             }
                           >
-                            DELETE
+                            {t("delete")}
                           </Button>
                         </>
                       ) : (
-                        <span>Login to edit</span>
+                        <span>{t("loginToEdit")}</span>
                       )}
                     </div>
                   </td>
@@ -232,15 +234,16 @@ const ManageScreen = () => {
       {/* Modal */}
       <Modal show={showModal} onHide={closeModal}>
         <Modal.Body className="d-flex justify-content-center">
-          <img
+          <LazyImage
             src={selectedImage}
             alt="payment receipt"
+            className="modal-img"
             style={{ maxWidth: "100%", maxHeight: "80vh", height: "auto" }}
           />
         </Modal.Body>
         <Modal.Footer className="d-flex justify-content-center">
           <Button variant="secondary" onClick={closeModal}>
-            Close
+            {t("close")}
           </Button>
         </Modal.Footer>
       </Modal>

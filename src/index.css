@@ -262,3 +262,10 @@ code {
   background-color: #102a41;
   border-color: #102a41;
 }
+
+/* Prevent wrapping in navbar brand and links */
+.navbar .navbar-brand,
+.navbar .nav-link,
+.navbar .navbar-nav {
+  white-space: nowrap;
+}

@@ -12,10 +12,12 @@ import {
 import { createPayment, getKWH } from "../actions/electricActions";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
+import { useI18n } from "../contexts/I18nContext";
 
 const CreateScreen = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t, dir } = useI18n();
 
   // Local state for input fields and operations
   const [price, setPrice] = useState(0);
@@ -104,9 +106,9 @@ const CreateScreen = () => {
   }, [KWH, currentKWH]);
 
   return (
-    <Container>
+    <Container dir={dir}>
       <FormContainer>
-        <h1>Create Payment</h1>
+        <h1>{t("createPayment")}</h1>
 
         {loadingCreate ? (
           <Loader />
@@ -114,12 +116,12 @@ const CreateScreen = () => {
           <Form onSubmit={createProductHandler}>
             <br />
             <Form.Group controlId="catalogNumber">
-              <Form.Label>Is Paid?</Form.Label>
+              <Form.Label>{t("isPaidQ")}</Form.Label>
               <Form.Control
                 required
                 type="text"
                 min={0}
-                placeholder="Is Paid"
+                placeholder={t("isPaidPlaceholder")}
                 value={paid}
                 onChange={(e) => setPaid(e.target.value)}
               ></Form.Control>
@@ -127,7 +129,7 @@ const CreateScreen = () => {
 
             <br />
             <Form.Group controlId="KWH">
-              <Form.Label>KWH</Form.Label>
+              <Form.Label>{t("kwh")}</Form.Label>
 
               <Form.Control
                 required
@@ -138,12 +140,14 @@ const CreateScreen = () => {
                   setKwh(parseFloat(e.target.value));
                 }}
               ></Form.Control>
-              <p>Current kWh: {currentKWH}</p>
+              <p>
+                {t("currentKwh")}: {currentKWH}
+              </p>
             </Form.Group>
 
             <br />
             <Form.Group controlId="Data">
-              <Form.Label>Date</Form.Label>
+              <Form.Label>{t("date")}</Form.Label>
               <Form.Control
                 required
                 type="date"
@@ -155,7 +159,7 @@ const CreateScreen = () => {
 
               <br />
               <Form.Group controlId="image">
-                <Form.Label>Image</Form.Label>
+                <Form.Label>{t("image")}</Form.Label>
                 <Form.Control
                   required
                   type="file"
@@ -171,12 +175,12 @@ const CreateScreen = () => {
               </Form.Group>
               <br />
               <Form.Group controlId="price">
-                <Form.Label>Price</Form.Label>
+                <Form.Label>{t("price")}</Form.Label>
                 <Form.Control
                   required
                   type="number"
                   disabled
-                  placeholder="Enter price"
+                  placeholder={t("enterPrice")}
                   value={price.toFixed(2)}
                 ></Form.Control>
               </Form.Group>
@@ -184,17 +188,17 @@ const CreateScreen = () => {
             <br />
             {errorCreate && <Message variant="danger">{errorCreate}</Message>}
             <Button className="me-5" type="submit" variant="primary">
-              Create
+              {t("create")}
             </Button>
             <Button
               onClick={() => {
-                if (window.confirm("Are you sure? The data will be lost.")) {
+                if (window.confirm(t("confirmCancel"))) {
                   navigate("/manage");
                 }
               }}
               className="btn btn-dark my-3"
             >
-              Cancel
+              {t("cancel")}
             </Button>
           </Form>
         )}
