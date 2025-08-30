@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Button, Container, Form, InputGroup } from "react-bootstrap";
+import { Button, Container, Form, InputGroup, Modal } from "react-bootstrap";
 import FormContainer from "../components/FormContainer";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
 import { useNavigate, useParams } from "react-router-dom";
 import { PaymentDetails, updatePayment } from "../actions/electricActions";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage } from "../firebase";
+import LazyImage from "../components/LazyImage";
 import {
   PAYMENT_UPDATE_RESET,
   KWH_RESET,
@@ -20,6 +23,10 @@ const UpdateScreen = () => {
   const [price, setPrice] = useState(0);
   const [, setFile] = useState();
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [changeImage, setChangeImage] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -43,7 +50,7 @@ const UpdateScreen = () => {
 
   useEffect(() => {
     if (successUpdate) {
-      navigate("/manage");
+      navigate("/");
       dispatch({ type: PAYMENT_UPDATE_RESET });
       dispatch({ type: KWH_RESET });
     } else if (payment.id !== id) {
@@ -162,28 +169,83 @@ const UpdateScreen = () => {
 
             <div>
               <Form.Group controlId="image">
-                <Form.Label>{t("image")}</Form.Label>
-                <Form.Control
-                  type="file"
-                  placeholder={t("image")}
-                  onChange={(e) => {
-                    setFile(e.target.files[0]);
-                  }}
+                <Form.Group controlId="price">
+                  <Form.Label>{t("price")}</Form.Label>
+                  <InputGroup className="input-icon-group">
+                    <InputGroup.Text>₪</InputGroup.Text>
+                    <Form.Control
+                      type="number"
+                      disabled
+                      placeholder={t("enterPrice")}
+                      value={price ?? 0}
+                    />
+                  </InputGroup>
+                </Form.Group>
+                <Form.Label>{t("currentImage")}</Form.Label>
+                {image && (
+                  <div className="mb-2">
+                    <LazyImage
+                      src={image}
+                      alt="current"
+                      style={{
+                        maxWidth: "65%",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setShowImageModal(true)}
+                    />
+                  </div>
+                )}
+                <Form.Check
+                  type="switch"
+                  id="change-image-switch"
+                  label={t("changeImageQ")}
+                  checked={changeImage}
+                  onChange={(e) => setChangeImage(e.target.checked)}
+                  className="mb-2"
                 />
-              </Form.Group>
-
-              <br />
-              <Form.Group controlId="price">
-                <Form.Label>{t("price")}</Form.Label>
-                <InputGroup className="input-icon-group">
-                  <InputGroup.Text>₪</InputGroup.Text>
-                  <Form.Control
-                    type="number"
-                    disabled
-                    placeholder={t("enterPrice")}
-                    value={price ?? 0}
-                  />
-                </InputGroup>
+                {changeImage && (
+                  <>
+                    <Form.Control
+                      type="file"
+                      onChange={(e) => {
+                        const chosen = e.target.files && e.target.files[0];
+                        if (!chosen) return;
+                        const name = new Date().getTime() + chosen.name;
+                        const storageRef = ref(storage, name);
+                        const uploadTask = uploadBytesResumable(
+                          storageRef,
+                          chosen
+                        );
+                        setUploading(true);
+                        uploadTask.on(
+                          "state_changed",
+                          (snapshot) => {
+                            const pct =
+                              (snapshot.bytesTransferred /
+                                snapshot.totalBytes) *
+                              100;
+                            setProgress(pct);
+                          },
+                          () => setUploading(false),
+                          () => {
+                            getDownloadURL(uploadTask.snapshot.ref).then(
+                              (downloadURL) => {
+                                setImage(downloadURL);
+                                setUploading(false);
+                              }
+                            );
+                          }
+                        );
+                      }}
+                    />
+                    {uploading && (
+                      <div className="mt-2 small text-muted">
+                        {progress.toFixed(0)}%
+                      </div>
+                    )}
+                  </>
+                )}
               </Form.Group>
             </div>
           </div>
@@ -203,6 +265,22 @@ const UpdateScreen = () => {
           </div>
         </Form>
       </FormContainer>
+      {/* Image preview modal */}
+      <Modal show={showImageModal} onHide={() => setShowImageModal(false)}>
+        <Modal.Body className="d-flex justify-content-center">
+          <LazyImage
+            src={image}
+            alt="payment receipt"
+            className="modal-img"
+            style={{ maxWidth: "100%", maxHeight: "80vh", height: "auto" }}
+          />
+        </Modal.Body>
+        <Modal.Footer className="d-flex justify-content-center">
+          <Button variant="secondary" onClick={() => setShowImageModal(false)}>
+            {t("close")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
       {/* Cancel confirmation modal */}
       <div
         className="modal"

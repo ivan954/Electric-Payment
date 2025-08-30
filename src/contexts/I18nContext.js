@@ -48,6 +48,8 @@ const translations = {
     currentKwh: "Current kWh",
     enterPrice: "Enter price",
     updatePaymentTitle: "Update Payment",
+    currentImage: "Current image",
+    changeImageQ: "Change image?",
   },
   he: {
     appTitle: "תשלום חשמל",
@@ -90,6 +92,8 @@ const translations = {
     currentKwh: 'קוט"ש נוכחי',
     enterPrice: "הזן מחיר",
     updatePaymentTitle: "עדכון תשלום",
+    currentImage: "תמונה נוכחית",
+    changeImageQ: "להחליף תמונה?",
   },
 };
 
