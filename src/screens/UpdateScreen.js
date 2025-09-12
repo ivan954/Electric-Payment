@@ -21,6 +21,7 @@ const UpdateScreen = () => {
   const [image, setImage] = useState();
   const [paid, setPaid] = useState("");
   const [price, setPrice] = useState(0);
+  const [currentPrice, setCurrentPrice] = useState(0);
   const [, setFile] = useState();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [changeImage, setChangeImage] = useState(false);
@@ -61,8 +62,13 @@ const UpdateScreen = () => {
       setDate(payment.date);
       setImage(payment.image);
       setPrice(payment.price);
+      setCurrentPrice(payment.price);
     }
   }, [dispatch, navigate, id, payment, successUpdate]);
+
+  useEffect(() => {
+    setPrice((KWH - payment.KWH) * 0.57 + currentPrice);
+  }, [KWH, payment.KWH, currentPrice]);
 
   return (
     <Container dir={dir}>

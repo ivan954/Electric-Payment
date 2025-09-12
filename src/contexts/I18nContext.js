@@ -8,9 +8,9 @@ import React, {
 
 const translations = {
   en: {
-    appTitle: "Electric Payment",
+    appTitle: "EV car",
     createPayment: "Create Payment",
-    managePayment: "Manage Payment",
+    managePayment: "Payment Management",
     logout: "Logout",
     login: "Login",
     kwh: "KWH",
@@ -38,7 +38,7 @@ const translations = {
     enterPassword: "Enter password",
     signIn: "Sign In",
     wrongEmailOrPassword: "Wrong email or password!",
-    create: "Create",
+    create: "Save",
     cancel: "Cancel",
     confirmCancel: "Are you sure? The data will be lost.",
     isPaidQ: "Is Paid?",
@@ -54,7 +54,7 @@ const translations = {
     changeImageQ: "Change image?",
   },
   he: {
-    appTitle: "תשלום חשמל",
+    appTitle: "רכב חשמלי",
     createPayment: "יצירת תשלום",
     managePayment: "ניהול תשלומים",
     logout: "יציאה",
@@ -84,7 +84,7 @@ const translations = {
     enterPassword: "הזן סיסמה",
     signIn: "התחבר",
     wrongEmailOrPassword: "אימייל או סיסמה שגויים!",
-    create: "יצירה",
+    create: "שמירה",
     cancel: "בטל",
     confirmCancel: "האם אתה בטוח? הנתונים יאבדו.",
     isPaidQ: "שולם?",

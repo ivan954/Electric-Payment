@@ -42,26 +42,27 @@ const Header = () => {
           <Nav
             className={(dir === "rtl" ? "me-auto" : "ms-auto") + " text-nowrap"}
           >
-            <Nav.Link
-              onClick={() => setLang(lang === "he" ? "en" : "he")}
-              title={lang === "he" ? "English" : "עברית"}
-            >
-              {lang === "he" ? "EN" : "HE"}
-            </Nav.Link>
             {userInfo ? (
               <>
-                <LinkContainer to="/create">
-                  <Nav.Link>
-                    <i className="bi bi-plus-circle nav-icon"></i>
-                    {t("createPayment")}
-                  </Nav.Link>
-                </LinkContainer>
                 <LinkContainer to="/">
                   <Nav.Link>
                     <i className="bi bi-table nav-icon"></i>
                     {t("managePayment")}
                   </Nav.Link>
                 </LinkContainer>
+                <LinkContainer to="/create">
+                  <Nav.Link>
+                    <i className="bi bi-plus-circle nav-icon"></i>
+                    {t("createPayment")}
+                  </Nav.Link>
+                </LinkContainer>
+                <Nav.Link
+                  onClick={() => setLang(lang === "he" ? "en" : "he")}
+                  title={lang === "he" ? "English" : "עברית"}
+                >
+                  <i className="bi bi-translate nav-icon"></i>
+                  {lang === "he" ? t("en") : t("he")}
+                </Nav.Link>
                 <Nav.Link onClick={logoutHandler}>
                   <i className="bi bi-box-arrow-right nav-icon"></i>
                   {t("logout")}
@@ -75,6 +76,13 @@ const Header = () => {
                     {t("managePayment")}
                   </Nav.Link>
                 </LinkContainer>
+                <Nav.Link
+                  onClick={() => setLang(lang === "he" ? "en" : "he")}
+                  title={lang === "he" ? "English" : "עברית"}
+                >
+                  <i className="bi bi-translate nav-icon"></i>
+                  {lang === "he" ? t("en") : t("he")}
+                </Nav.Link>
                 <LinkContainer to="/login">
                   <Nav.Link>
                     <i className="bi bi-box-arrow-in-right nav-icon"></i>
