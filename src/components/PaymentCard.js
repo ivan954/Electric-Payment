@@ -1,6 +1,5 @@
 import React from "react";
-import { Button } from "react-bootstrap";
-import { LinkContainer } from "react-router-bootstrap";
+import { Link } from "react-router-dom";
 import LazyImage from "./LazyImage";
 import { useI18n } from "../contexts/I18nContext";
 import {
@@ -74,21 +73,23 @@ const PaymentCard = ({ payment, canEdit, onTogglePaid, onDelete, onOpenImage }) 
 
       {canEdit && (
         <div className="payment-card__actions">
-          <LinkContainer to={`/manage/${payment.id}`}>
-            <Button variant="light" size="sm" aria-label={t("update")} title={t("update")}>
-              <i className="bi bi-pencil" aria-hidden="true"></i>
-            </Button>
-          </LinkContainer>
-          <Button
-            variant="light"
-            size="sm"
-            className="text-danger"
+          <Link
+            to={`/manage/${payment.id}`}
+            className="icon-btn icon-btn--edit"
+            aria-label={t("update")}
+            title={t("update")}
+          >
+            <i className="bi bi-pencil-square" aria-hidden="true"></i>
+          </Link>
+          <button
+            type="button"
+            className="icon-btn icon-btn--delete"
             aria-label={t("delete")}
             title={t("delete")}
             onClick={() => onDelete(payment)}
           >
             <i className="bi bi-trash3" aria-hidden="true"></i>
-          </Button>
+          </button>
         </div>
       )}
     </article>

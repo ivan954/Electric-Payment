@@ -30,7 +30,6 @@ const translations = {
     confirmLeaveBody: "Your unsaved changes will be lost.",
     stay: "Continue editing",
     leave: "Leave",
-    // Auth/Create/Update screens
     signInTitle: "Sign In",
     emailAddress: "Email Address",
     enterEmail: "Enter email",
@@ -52,7 +51,6 @@ const translations = {
     updatePaymentTitle: "Update Payment",
     currentImage: "Current image",
     changeImageQ: "Change image?",
-    // Dashboard
     summaryUnpaid: "Unpaid",
     summaryReading: "Meter reading",
     summaryThisMonth: "This month",
@@ -92,7 +90,6 @@ const translations = {
     updateFailed: "Couldn't save the change. Please try again.",
     deleteTitle: "Delete payment?",
     deleteBody: "This permanently deletes the payment and its photo.",
-    // Create form
     newReading: "New meter reading",
     kwhMustBeHigher: "Must be higher than the current reading",
     charged: "Charged",
@@ -127,7 +124,6 @@ const translations = {
     confirmLeaveBody: "השינויים שלא נשמרו ייאבדו.",
     stay: "המשך עריכה",
     leave: "צא",
-    // Auth/Create/Update screens
     signInTitle: "התחברות",
     emailAddress: "כתובת אימייל",
     enterEmail: "הזן אימייל",
@@ -188,7 +184,6 @@ const translations = {
     updateFailed: "לא הצלחנו לשמור את השינוי. נסה שוב.",
     deleteTitle: "למחוק את התשלום?",
     deleteBody: "התשלום והתמונה שלו יימחקו לצמיתות.",
-    // Create form
     newReading: "קריאת מונה חדשה",
     kwhMustBeHigher: "חייב להיות גבוה מהקריאה הנוכחית",
     charged: "נטען",
@@ -202,7 +197,7 @@ const translations = {
   },
 };
 
-const langToDir = { en: "ltr", he: "rtl" };
+const directionByLang = { en: "ltr", he: "rtl" };
 
 const I18nContext = createContext({
   lang: "he",
@@ -217,15 +212,13 @@ export const I18nProvider = ({ children }) => {
     return saved === "en" || saved === "he" ? saved : "he";
   });
 
-  const dir = langToDir[lang] || "ltr";
+  const dir = directionByLang[lang] || "ltr";
 
   useEffect(() => {
     try {
       window.localStorage.setItem("lang", lang);
-    } catch (e) {
-      // non-critical persistence failure
-      // eslint-disable-next-line no-unused-vars
-      const _ignored = e;
+    } catch {
+      // Storage can be blocked (private browsing); the language just won't persist
     }
   }, [lang]);
 

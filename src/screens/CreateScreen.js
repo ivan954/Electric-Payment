@@ -39,8 +39,8 @@ const CreateScreen = () => {
 
   const [paid, setPaid] = useState("No");
   const [date, setDate] = useState(todayISO);
-  const [KWH, setKwh] = useState("");
-  const [currentKWH, setCurrentKWH] = useState(0);
+  const [readingInput, setReadingInput] = useState("");
+  const [currentReading, setCurrentReading] = useState(0);
 
   const [preview, setPreview] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
@@ -51,11 +51,11 @@ const CreateScreen = () => {
   const [submitted, setSubmitted] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  const cameraInput = useRef(null);
-  const galleryInput = useRef(null);
-  const uploadedPath = useRef(null); // storage path of an upload not yet saved to a payment
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+  const unsavedUploadPath = useRef(null);
 
-  const { data } = useSelector((state) => state.electricKWH);
+  const { data: kwhSummary } = useSelector((state) => state.electricKWH);
   const {
     loading: loadingCreate,
     error: errorCreate,
@@ -67,14 +67,14 @@ const CreateScreen = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (data && data.length > 0) {
-      setCurrentKWH(data[0]);
+    if (kwhSummary && kwhSummary.length > 0) {
+      setCurrentReading(kwhSummary[0]);
     }
-  }, [data]);
+  }, [kwhSummary]);
 
   useEffect(() => {
     if (successCreate) {
-      uploadedPath.current = null; // now owned by the saved payment
+      unsavedUploadPath.current = null;
       dispatch({ type: PAYMENT_CREATE_RESET });
       dispatch({ type: KWH_RESET });
       navigate("/");
@@ -83,26 +83,25 @@ const CreateScreen = () => {
 
   useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
 
-  const discardUpload = () => {
-    if (uploadedPath.current) {
-      deleteObject(ref(storage, uploadedPath.current)).catch(() => {});
-      uploadedPath.current = null;
+  const deleteUnsavedUpload = () => {
+    if (unsavedUploadPath.current) {
+      deleteObject(ref(storage, unsavedUploadPath.current)).catch(() => {});
+      unsavedUploadPath.current = null;
     }
   };
 
-  // Upload as soon as a photo is picked so saving is instant
-  const handleFile = (file) => {
+  const uploadPhoto = (file) => {
     if (!file) return;
-    discardUpload();
+    deleteUnsavedUpload();
     setPreview(URL.createObjectURL(file));
     setImageUrl(null);
     setUploadError(null);
     setUploading(true);
     setProgress(0);
 
-    const path = `${Date.now()}${file.name}`;
-    const task = uploadBytesResumable(ref(storage, path), file);
-    task.on(
+    const storagePath = `${Date.now()}${file.name}`;
+    const uploadTask = uploadBytesResumable(ref(storage, storagePath), file);
+    uploadTask.on(
       "state_changed",
       (snapshot) =>
         setProgress((snapshot.bytesTransferred / snapshot.totalBytes) * 100),
@@ -111,27 +110,28 @@ const CreateScreen = () => {
         setUploadError(t("uploadFailed"));
       },
       async () => {
-        uploadedPath.current = path;
-        setImageUrl(await getDownloadURL(task.snapshot.ref));
+        unsavedUploadPath.current = storagePath;
+        setImageUrl(await getDownloadURL(uploadTask.snapshot.ref));
         setUploading(false);
       }
     );
   };
 
-  const kwhValue = parseFloat(KWH);
-  const usage = Number.isFinite(kwhValue) ? kwhValue - currentKWH : 0;
-  const kwhInvalid = KWH !== "" && usage <= 0;
+  const newReading = parseFloat(readingInput);
+  const usage = Number.isFinite(newReading) ? newReading - currentReading : 0;
+  const isReadingInvalid = readingInput !== "" && usage <= 0;
   const price = usage > 0 ? usage * PRICE_PER_KWH : 0;
 
   const submitHandler = (e) => {
     e.preventDefault();
     setSubmitted(true);
-    if (!Number.isFinite(kwhValue) || usage <= 0 || !imageUrl || !date) return;
-    dispatch(createPayment(kwhValue, date, price, paid, imageUrl));
+    if (!Number.isFinite(newReading) || usage <= 0 || !imageUrl || !date)
+      return;
+    dispatch(createPayment(newReading, date, price, paid, imageUrl));
   };
 
   const leave = () => {
-    discardUpload();
+    deleteUnsavedUpload();
     setShowCancelModal(false);
     navigate("/");
   };
@@ -150,7 +150,7 @@ const CreateScreen = () => {
           <Form noValidate onSubmit={submitHandler}>
             <div className="form-grid">
               <div>
-                <Form.Group controlId="KWH" className="mb-3">
+                <Form.Group controlId="reading" className="mb-3">
                   <Form.Label>{t("newReading")}</Form.Label>
                   <InputGroup className="input-icon-group" hasValidation>
                     <InputGroup.Text>
@@ -162,17 +162,20 @@ const CreateScreen = () => {
                       min={0}
                       step="any"
                       autoFocus
-                      placeholder={formatNumber(currentKWH, lang)}
-                      value={KWH}
-                      isInvalid={kwhInvalid || (submitted && KWH === "")}
-                      onChange={(e) => setKwh(e.target.value)}
+                      placeholder={formatNumber(currentReading, lang)}
+                      value={readingInput}
+                      isInvalid={
+                        isReadingInvalid || (submitted && readingInput === "")
+                      }
+                      onChange={(e) => setReadingInput(e.target.value)}
                     />
                     <Form.Control.Feedback type="invalid">
-                      {t("kwhMustBeHigher")} ({formatNumber(currentKWH, lang)})
+                      {t("kwhMustBeHigher")} (
+                      {formatNumber(currentReading, lang)})
                     </Form.Control.Feedback>
                   </InputGroup>
                   <Form.Text muted>
-                    {t("currentKwh")}: {formatNumber(currentKWH, lang)}
+                    {t("currentKwh")}: {formatNumber(currentReading, lang)}
                   </Form.Text>
                 </Form.Group>
 
@@ -236,13 +239,16 @@ const CreateScreen = () => {
                   {preview ? (
                     <img src={preview} alt="" className="photo-drop__preview" />
                   ) : (
-                    <i className="bi bi-camera photo-drop__icon" aria-hidden="true"></i>
+                    <i
+                      className="bi bi-camera photo-drop__icon"
+                      aria-hidden="true"
+                    ></i>
                   )}
                   <div className="photo-drop__buttons">
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => cameraInput.current.click()}
+                      onClick={() => cameraInputRef.current.click()}
                     >
                       <i className="bi bi-camera" aria-hidden="true"></i>{" "}
                       {t("takePhoto")}
@@ -250,26 +256,26 @@ const CreateScreen = () => {
                     <Button
                       variant="outline-secondary"
                       size="sm"
-                      onClick={() => galleryInput.current.click()}
+                      onClick={() => galleryInputRef.current.click()}
                     >
                       <i className="bi bi-image" aria-hidden="true"></i>{" "}
                       {t("chooseFromGallery")}
                     </Button>
                   </div>
                   <input
-                    ref={cameraInput}
+                    ref={cameraInputRef}
                     type="file"
                     accept="image/*"
                     capture="environment"
                     hidden
-                    onChange={(e) => handleFile(e.target.files[0])}
+                    onChange={(e) => uploadPhoto(e.target.files[0])}
                   />
                   <input
-                    ref={galleryInput}
+                    ref={galleryInputRef}
                     type="file"
                     accept="image/*"
                     hidden
-                    onChange={(e) => handleFile(e.target.files[0])}
+                    onChange={(e) => uploadPhoto(e.target.files[0])}
                   />
                   {uploading && (
                     <ProgressBar
@@ -284,7 +290,9 @@ const CreateScreen = () => {
                       {t("photoUploaded")}
                     </small>
                   )}
-                  {uploadError && <small className="text-danger">{uploadError}</small>}
+                  {uploadError && (
+                    <small className="text-danger">{uploadError}</small>
+                  )}
                   {submitted && !imageUrl && !uploading && !uploadError && (
                     <small className="text-danger">{t("photoRequired")}</small>
                   )}
@@ -292,9 +300,7 @@ const CreateScreen = () => {
               </div>
             </div>
 
-            {errorCreate && (
-              <Message variant="danger">{errorCreate}</Message>
-            )}
+            {errorCreate && <Message variant="danger">{errorCreate}</Message>}
             <div className="form-actions d-flex justify-content-center gap-3 mt-4">
               <Button
                 type="submit"
@@ -316,7 +322,11 @@ const CreateScreen = () => {
         )}
       </FormContainer>
 
-      <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)} centered>
+      <Modal
+        show={showCancelModal}
+        onHide={() => setShowCancelModal(false)}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>{t("confirmLeaveTitle")}</Modal.Title>
         </Modal.Header>

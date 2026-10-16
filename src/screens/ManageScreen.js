@@ -53,26 +53,25 @@ const ManageScreen = () => {
     dispatch(listPayments());
   }, [dispatch, successDelete]);
 
-  // Extended "add" button: shrink to an icon while scrolling down, expand on the way up
-  const [fabCompact, setFabCompact] = useState(false);
+  const [isFabCollapsed, setIsFabCollapsed] = useState(false);
   const lastScrollY = useRef(0);
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
       if (Math.abs(y - lastScrollY.current) < 8) return;
-      setFabCompact(y > lastScrollY.current && y > 120);
+      setIsFabCollapsed(y > lastScrollY.current && y > 120);
       lastScrollY.current = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const sorted = useMemo(() => withUsage(payments), [payments]);
-  const summary = useMemo(() => summarize(sorted), [sorted]);
+  const allPayments = useMemo(() => withUsage(payments), [payments]);
+  const summary = useMemo(() => summarize(allPayments), [allPayments]);
 
   const years = useMemo(
-    () => [...new Set(sorted.map((p) => p.date.slice(0, 4)))],
-    [sorted]
+    () => [...new Set(allPayments.map((payment) => payment.date.slice(0, 4)))],
+    [allPayments]
   );
 
   // Filters live in the URL so refresh / back / shared links keep them
@@ -100,17 +99,17 @@ const ManageScreen = () => {
 
   const statusLabel = (paid) => (paid ? t("statusPaid") : t("statusUnpaid"));
 
-  const visible = useMemo(
-    () => applyFilters(sorted, filters, lang, statusLabel),
+  const visiblePayments = useMemo(
+    () => applyFilters(allPayments, filters, lang, statusLabel),
     // statusLabel only depends on t, which changes with lang
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sorted, filters, lang]
+    [allPayments, filters, lang]
   );
 
   // Status counts reflect the other active filters, so each chip previews its result
   const statusCounts = useMemo(() => {
     const base = applyFilters(
-      sorted,
+      allPayments,
       { ...filters, status: "all" },
       lang,
       statusLabel
@@ -118,21 +117,21 @@ const ManageScreen = () => {
     const paid = base.filter(isPaid).length;
     return { all: base.length, paid, unpaid: base.length - paid };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sorted, filters, lang]);
+  }, [allPayments, filters, lang]);
 
   const groups = useMemo(
     () =>
       isDateSort(filters.sort)
-        ? groupByYear(visible)
-        : [{ key: null, payments: visible }],
-    [visible, filters.sort]
+        ? groupByYear(visiblePayments)
+        : [{ key: null, payments: visiblePayments }],
+    [visiblePayments, filters.sort]
   );
-  const visibleTotal = visible.reduce(
-    (sum, p) => sum + (Number(p.price) || 0),
+  const visiblePaymentsTotal = visiblePayments.reduce(
+    (sum, payment) => sum + (Number(payment.price) || 0),
     0
   );
 
-  const updatePaid = (ids, paid) => {
+  const changePaidStatus = (ids, paid) => {
     setActionError(null);
     dispatch(setPaymentsPaid(ids, paid)).catch(() =>
       setActionError(t("updateFailed"))
@@ -152,9 +151,8 @@ const ManageScreen = () => {
       <SummaryCards
         summary={summary}
         canEdit={canEdit}
-        onMarkAllPaid={(ids) => updatePaid(ids, "Yes")}
+        onMarkAllPaid={(ids) => changePaidStatus(ids, "Yes")}
       />
-
 
       {actionError && <Message variant="danger">{actionError}</Message>}
 
@@ -163,21 +161,21 @@ const ManageScreen = () => {
         onChange={setFilters}
         years={years}
         statusCounts={statusCounts}
-        resultCount={visible.length}
-        totalCount={sorted.length}
-        resultTotal={visibleTotal}
+        resultCount={visiblePayments.length}
+        totalCount={allPayments.length}
+        resultTotal={visiblePaymentsTotal}
       />
 
       {deleteLoader && <Loader />}
 
-      {visible.length === 0 ? (
+      {visiblePayments.length === 0 ? (
         <div className="empty-state">
           <i
-            className={`bi ${sorted.length ? "bi-search" : "bi-inbox"}`}
+            className={`bi ${allPayments.length ? "bi-search" : "bi-inbox"}`}
             aria-hidden="true"
           ></i>
-          <p>{sorted.length ? t("noResults") : t("noPayments")}</p>
-          {sorted.length > 0 && (
+          <p>{allPayments.length ? t("noResults") : t("noPayments")}</p>
+          {allPayments.length > 0 && (
             <Button
               variant="outline-secondary"
               size="sm"
@@ -189,9 +187,9 @@ const ManageScreen = () => {
         </div>
       ) : (
         groups.map((group) => (
-          <section key={group.key || "all"} className="month-group">
+          <section key={group.key || "all"} className="year-group">
             {group.key && (
-              <header className="month-group__header">
+              <header className="year-group__header">
                 <h3>{group.key}</h3>
                 <span>
                   {group.payments.length} {t("paymentsCount")} ·{" "}
@@ -206,8 +204,8 @@ const ManageScreen = () => {
                 canEdit={canEdit}
                 onOpenImage={setSelectedImage}
                 onDelete={setPendingDelete}
-                onTogglePaid={(p) =>
-                  updatePaid([p.id], isPaid(p) ? "No" : "Yes")
+                onTogglePaid={(payment) =>
+                  changePaidStatus([payment.id], isPaid(payment) ? "No" : "Yes")
                 }
               />
             ))}
@@ -218,7 +216,7 @@ const ManageScreen = () => {
       {canEdit && (
         <LinkContainer to="/create">
           <Button
-            className={`fab ${fabCompact ? "fab--compact" : ""}`}
+            className={`fab ${isFabCollapsed ? "fab--compact" : ""}`}
             aria-label={t("createPayment")}
           >
             <span className="fab__icon" aria-hidden="true">

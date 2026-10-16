@@ -90,7 +90,7 @@ export const electricKWHReducer = (state = { data: [] }, action) => {
   }
 };
 
-export const electricDetalisReducer = (state = { payment: [] }, action) => {
+export const electricDetailsReducer = (state = { payment: [] }, action) => {
   switch (action.type) {
     case PAYMENT_DETAILS_REQUEST:
       return { ...state, loading: true };

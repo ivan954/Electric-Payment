@@ -23,7 +23,7 @@ const PaymentFilters = ({
 }) => {
   const { t, lang } = useI18n();
   const searchRef = useRef(null);
-  const set = (patch) => onChange({ ...filters, ...patch });
+  const updateFilters = (patch) => onChange({ ...filters, ...patch });
 
   const isFiltered =
     filters.q !== DEFAULT_FILTERS.q ||
@@ -31,17 +31,16 @@ const PaymentFilters = ({
     filters.year !== DEFAULT_FILTERS.year;
   const isChanged = isFiltered || filters.sort !== DEFAULT_FILTERS.sort;
 
-  // "/" jumps to the search box, like most web apps
   useEffect(() => {
-    const onKey = (e) => {
+    const focusSearchOnSlash = (e) => {
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
       if (e.key === "/" && !typing) {
         e.preventDefault();
         searchRef.current?.focus();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", focusSearchOnSlash);
+    return () => window.removeEventListener("keydown", focusSearchOnSlash);
   }, []);
 
   return (
@@ -55,15 +54,15 @@ const PaymentFilters = ({
           placeholder={t("searchPlaceholder")}
           aria-label={t("searchPlaceholder")}
           value={filters.q}
-          onChange={(e) => set({ q: e.target.value })}
-          onKeyDown={(e) => e.key === "Escape" && set({ q: "" })}
+          onChange={(e) => updateFilters({ q: e.target.value })}
+          onKeyDown={(e) => e.key === "Escape" && updateFilters({ q: "" })}
         />
         {filters.q && (
           <button
             type="button"
             className="search-box__clear"
             onClick={() => {
-              set({ q: "" });
+              updateFilters({ q: "" });
               searchRef.current?.focus();
             }}
             aria-label={t("clearSearch")}
@@ -86,7 +85,7 @@ const PaymentFilters = ({
               role="radio"
               aria-checked={filters.status === key}
               className={filters.status === key ? "is-active" : ""}
-              onClick={() => set({ status: key })}
+              onClick={() => updateFilters({ status: key })}
             >
               <i className={`bi ${icon}`} aria-hidden="true"></i>
               {t(`filter_${key}`)}
@@ -102,7 +101,7 @@ const PaymentFilters = ({
               <span className="visually-hidden">{t("yearLabel")}</span>
               <select
                 value={filters.year}
-                onChange={(e) => set({ year: e.target.value })}
+                onChange={(e) => updateFilters({ year: e.target.value })}
               >
                 <option value="all">{t("allYears")}</option>
                 {years.map((year) => (
@@ -122,7 +121,7 @@ const PaymentFilters = ({
             <span className="visually-hidden">{t("sortLabel")}</span>
             <select
               value={filters.sort}
-              onChange={(e) => set({ sort: e.target.value })}
+              onChange={(e) => updateFilters({ sort: e.target.value })}
             >
               {SORT_OPTIONS.map((key) => (
                 <option key={key} value={key}>

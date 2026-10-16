@@ -8,7 +8,6 @@ const LazyImage = ({ src, alt, className, style, onClick }) => {
   const imgRef = useRef(null);
   const preloaderRef = useRef(null);
 
-  // Reset and re-observe when src changes
   useEffect(() => {
     setIsInView(false);
     setLoaded(false);
@@ -31,12 +30,10 @@ const LazyImage = ({ src, alt, className, style, onClick }) => {
       observer.observe(sentinelRef.current);
       return () => observer.disconnect();
     } else {
-      // Fallback: load immediately
       setIsInView(true);
     }
   }, [src]);
 
-  // Start preloading when in view
   useEffect(() => {
     if (!isInView || loaded || failed) return;
 
@@ -48,7 +45,6 @@ const LazyImage = ({ src, alt, className, style, onClick }) => {
     preloader.addEventListener("error", handleError);
     preloader.src = src;
 
-    // If cached
     if (preloader.complete && preloader.naturalWidth > 0) {
       setLoaded(true);
     }
@@ -59,7 +55,6 @@ const LazyImage = ({ src, alt, className, style, onClick }) => {
     };
   }, [isInView, src, loaded, failed]);
 
-  // If the image is already cached, ensure we mark it loaded
   useEffect(() => {
     if (
       isInView &&

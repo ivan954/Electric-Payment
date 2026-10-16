@@ -40,15 +40,13 @@ import { ref, deleteObject, getStorage } from "firebase/storage";
 import { auth } from "../firebase";
 import { db } from "../firebase";
 
-export const loginToPaiments = (email, password) => async (dispatch) => {
+export const loginUser = (email, password) => async (dispatch) => {
   dispatch({ type: LOGIN_REQUEST });
   signInWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
-      const date = userCredential.user;
-
       dispatch({
         type: LOGIN_SUCCESS,
-        payload: date,
+        payload: userCredential.user,
       });
     })
     .catch((error) => {
@@ -65,57 +63,49 @@ export const logout = () => async (dispatch) => {
 };
 
 export const listPayments = () => async (dispatch) => {
-  const data = [];
   try {
     dispatch({ type: PAYMENT_LIST_REQUEST });
 
-    const querySnapshot = await getDocs(collection(db, "payments"));
-    querySnapshot.forEach((doc) => {
-      data.push({ id: doc.id, ...doc.data() });
-    });
+    const snapshot = await getDocs(collection(db, "payments"));
+    const payments = snapshot.docs.map((paymentDoc) => ({
+      id: paymentDoc.id,
+      ...paymentDoc.data(),
+    }));
 
     dispatch({
       type: PAYMENT_LIST_SUCCESS,
-      payload: data,
+      payload: payments,
     });
   } catch (error) {
     dispatch({
       type: PAYMENT_LIST_FAIL,
-      payload:
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message,
+      payload: error.message,
     });
   }
 };
 
-export const PaymentDetails = (id) => async (dispatch) => {
+export const fetchPaymentDetails = (id) => async (dispatch) => {
   try {
     dispatch({ type: PAYMENT_DETAILS_REQUEST });
 
-    const docRef = doc(db, "payments", id);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      dispatch({
-        type: PAYMENT_DETAILS_SUCCESS,
-        payload: { ...docSnap.data(), id: docSnap.id },
-      });
-    } else {
-      throw new Error("No such document!");
+    const paymentDoc = await getDoc(doc(db, "payments", id));
+    if (!paymentDoc.exists()) {
+      throw new Error("Payment not found");
     }
+
+    dispatch({
+      type: PAYMENT_DETAILS_SUCCESS,
+      payload: { ...paymentDoc.data(), id: paymentDoc.id },
+    });
   } catch (error) {
     dispatch({
       type: PAYMENT_DETAILS_FAIL,
-      payload:
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message,
+      payload: error.message,
     });
   }
 };
 
-export const deletePayment = (id, image) => async (dispatch, getState) => {
+export const deletePayment = (id, image) => async (dispatch) => {
   try {
     dispatch({
       type: PAYMENT_DELETE_REQUEST,
@@ -138,93 +128,71 @@ export const deletePayment = (id, image) => async (dispatch, getState) => {
       type: PAYMENT_DELETE_SUCCESS,
     });
   } catch (error) {
-    const message =
-      error.response && error.response.data.message
-        ? error.response.data.message
-        : error.message;
-
     dispatch({
       type: PAYMENT_DELETE_FAIL,
-      payload: message,
+      payload: error.message,
     });
   }
 };
 
 export const createPayment =
-  (KWH, date, price, paid, image) => async (dispatch, getState) => {
+  (KWH, date, price, paid, image) => async (dispatch) => {
     try {
       dispatch({
         type: PAYMENT_CREATE_REQUEST,
       });
 
-      const data = await addDoc(collection(db, "payments"), {
-        KWH: KWH,
-        date: date,
-        image: image,
-        paid: paid,
-        price: price,
+      const paymentRef = await addDoc(collection(db, "payments"), {
+        KWH,
+        date,
+        image,
+        paid,
+        price,
         updateTime: serverTimestamp(),
       });
 
-      await setDoc(doc(db, "KWH", data.id), {
-        KWH: KWH,
-        date: date,
+      await setDoc(doc(db, "KWH", paymentRef.id), {
+        KWH,
+        date,
         updateTime: serverTimestamp(),
       });
 
       dispatch({
         type: PAYMENT_CREATE_SUCCESS,
-        payload: data,
+        payload: paymentRef,
       });
     } catch (error) {
-      const message =
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message;
-
       dispatch({
         type: PAYMENT_CREATE_FAIL,
-        payload: message,
+        payload: error.message,
       });
     }
   };
 
 export const updatePayment =
   ({ id, paid, price, KWH, date, image }) =>
-  async (dispatch, getState) => {
+  async (dispatch) => {
     try {
       dispatch({
         type: PAYMENT_UPDATE_REQUEST,
       });
-      const data = {
-        KWH: KWH,
-        date: date,
-        image: image,
-        paid: paid,
-        price: price,
-      };
+      const updatedFields = { KWH, date, image, paid, price };
 
-      const examcollref = doc(db, "payments", id);
-      await updateDoc(examcollref, data);
-      await updateDoc(doc(db, "KWH", examcollref.id), {
-        KWH: KWH,
-        date: date,
+      await updateDoc(doc(db, "payments", id), updatedFields);
+      await updateDoc(doc(db, "KWH", id), {
+        KWH,
+        date,
         updateTime: serverTimestamp(),
       });
 
       dispatch({
         type: PAYMENT_UPDATE_SUCCESS,
-        payload: data,
+        payload: updatedFields,
       });
     } catch (error) {
-      const message =
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message;
-
       dispatch({
         type: PAYMENT_UPDATE_FAIL,
-        payload: message,
+        payload: error.message,
       });
     }
   };
@@ -234,14 +202,16 @@ export const getKWH = () => async (dispatch) => {
     dispatch({ type: KWH_REQUEST });
 
     const snapshot = await getDocs(collection(db, "KWH"));
-    const readings = snapshot.docs.map((d) => d.data());
+    const readings = snapshot.docs.map((readingDoc) => readingDoc.data());
 
     const maxKwh = readings.length
-      ? Math.max(...readings.map((r) => Number(r.KWH) || 0))
+      ? Math.max(...readings.map((reading) => Number(reading.KWH) || 0))
       : 0;
     const lastUpdateMs = Math.max(
       0,
-      ...readings.map((r) => (r.updateTime ? r.updateTime.toMillis() : 0))
+      ...readings.map((reading) =>
+        reading.updateTime ? reading.updateTime.toMillis() : 0
+      )
     );
     const lastUpdate = lastUpdateMs
       ? new Date(lastUpdateMs).toLocaleDateString("en-GB")
@@ -254,19 +224,16 @@ export const getKWH = () => async (dispatch) => {
   } catch (error) {
     dispatch({
       type: KWH_FAIL,
-      payload:
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message,
+      payload: error.message,
     });
   }
 };
 
 // Optimistically flips the "paid" flag on one or more payments; reverts if the write fails
 export const setPaymentsPaid = (ids, paid) => async (dispatch, getState) => {
-  const previous = getState()
-    .electricList.payments.filter((p) => ids.includes(p.id))
-    .map((p) => ({ id: p.id, paid: p.paid }));
+  const previousStatuses = getState()
+    .electricList.payments.filter((payment) => ids.includes(payment.id))
+    .map((payment) => ({ id: payment.id, paid: payment.paid }));
 
   dispatch({ type: PAYMENT_PAID_SET, payload: { ids, paid } });
 
@@ -275,8 +242,11 @@ export const setPaymentsPaid = (ids, paid) => async (dispatch, getState) => {
     ids.forEach((id) => batch.update(doc(db, "payments", id), { paid }));
     await batch.commit();
   } catch (error) {
-    previous.forEach(({ id, paid: oldPaid }) =>
-      dispatch({ type: PAYMENT_PAID_SET, payload: { ids: [id], paid: oldPaid } })
+    previousStatuses.forEach(({ id, paid: previousPaid }) =>
+      dispatch({
+        type: PAYMENT_PAID_SET,
+        payload: { ids: [id], paid: previousPaid },
+      })
     );
     throw error;
   }

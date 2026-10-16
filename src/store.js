@@ -3,7 +3,7 @@ import thunk from "redux-thunk";
 import { composeWithDevTools } from "redux-devtools-extension";
 import {
   electricListReducer,
-  electricDetalisReducer,
+  electricDetailsReducer,
   electricDeleteReducer,
   electricCreateReducer,
   electricUpdateReducer,
@@ -11,12 +11,12 @@ import {
   electricKWHReducer,
 } from "./reducers/electricReducers";
 
-const reducer = combineReducers({
+const rootReducer = combineReducers({
   login: loginReducer,
   electricKWH: electricKWHReducer,
 
   electricList: electricListReducer,
-  electricDetalis: electricDetalisReducer,
+  electricDetails: electricDetailsReducer,
   electricDelete: electricDeleteReducer,
   electricCreate: electricCreateReducer,
   electricUpdate: electricUpdateReducer,
@@ -25,7 +25,7 @@ const reducer = combineReducers({
 const middleware = [thunk];
 
 const store = createStore(
-  reducer,
+  rootReducer,
   composeWithDevTools(applyMiddleware(...middleware))
 );
 

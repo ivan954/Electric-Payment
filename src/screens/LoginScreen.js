@@ -4,7 +4,7 @@ import FormContainer from "../components/FormContainer";
 import { useDispatch, useSelector } from "react-redux";
 import Message from "../components/Message";
 import Loader from "../components/Loader";
-import { loginToPaiments } from "../actions/electricActions";
+import { loginUser } from "../actions/electricActions";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../contexts/I18nContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -22,7 +22,7 @@ const LoginScreen = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    dispatch(loginToPaiments(email, password));
+    dispatch(loginUser(email, password));
   };
 
   const { user } = useAuth();

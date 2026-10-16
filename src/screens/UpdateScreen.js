@@ -5,7 +5,7 @@ import FormContainer from "../components/FormContainer";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
 import { useNavigate, useParams } from "react-router-dom";
-import { PaymentDetails, updatePayment } from "../actions/electricActions";
+import { fetchPaymentDetails, updatePayment } from "../actions/electricActions";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
 import LazyImage from "../components/LazyImage";
@@ -22,7 +22,7 @@ const UpdateScreen = () => {
   const [image, setImage] = useState();
   const [paid, setPaid] = useState("");
   const [price, setPrice] = useState(0);
-  const [currentPrice, setCurrentPrice] = useState(0);
+  const [savedPrice, setSavedPrice] = useState(0);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [changeImage, setChangeImage] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -35,8 +35,8 @@ const UpdateScreen = () => {
   const navigate = useNavigate();
   const { t, dir } = useI18n();
 
-  const electricDetalis = useSelector((state) => state.electricDetalis);
-  const { loading, error, payment } = electricDetalis;
+  const electricDetails = useSelector((state) => state.electricDetails);
+  const { loading, error, payment } = electricDetails;
 
   const electricUpdate = useSelector((state) => state.electricUpdate);
   const {
@@ -45,7 +45,7 @@ const UpdateScreen = () => {
     success: successUpdate,
   } = electricUpdate;
 
-  const createProductHandler = (e) => {
+  const submitHandler = (e) => {
     e.preventDefault();
     dispatch(updatePayment({ id, paid, price, KWH, date, image }));
   };
@@ -56,20 +56,20 @@ const UpdateScreen = () => {
       dispatch({ type: PAYMENT_UPDATE_RESET });
       dispatch({ type: KWH_RESET });
     } else if (payment.id !== id) {
-      dispatch(PaymentDetails(id));
+      dispatch(fetchPaymentDetails(id));
     } else {
       setPaid(payment.paid);
       setKwh(payment.KWH);
       setDate(payment.date);
       setImage(payment.image);
       setPrice(payment.price);
-      setCurrentPrice(payment.price);
+      setSavedPrice(payment.price);
     }
   }, [dispatch, navigate, id, payment, successUpdate]);
 
   useEffect(() => {
-    setPrice((KWH - payment.KWH) * PRICE_PER_KWH + currentPrice);
-  }, [KWH, payment.KWH, currentPrice]);
+    setPrice((KWH - payment.KWH) * PRICE_PER_KWH + savedPrice);
+  }, [KWH, payment.KWH, savedPrice]);
 
   return (
     <Container dir={dir}>
@@ -81,10 +81,10 @@ const UpdateScreen = () => {
           <h1 className="m-0">{t("updatePaymentTitle")}</h1>
         </div>
 
-        <Form onSubmit={createProductHandler}>
+        <Form onSubmit={submitHandler}>
           <div className="form-grid">
             <div>
-              <Form.Group controlId="catalogNumber">
+              <Form.Group controlId="paid">
                 <Form.Label>{t("isPaidQ")} </Form.Label>
                 <InputGroup className="input-icon-group">
                   <InputGroup.Text>
@@ -121,7 +121,7 @@ const UpdateScreen = () => {
               </Form.Group>
 
               <br />
-              <Form.Group controlId="Data">
+              <Form.Group controlId="date">
                 <Form.Label>{t("date")}</Form.Label>
                 <InputGroup className="input-icon-group">
                   <InputGroup.Text>
@@ -180,28 +180,26 @@ const UpdateScreen = () => {
                     <Form.Control
                       type="file"
                       onChange={(e) => {
-                        const chosen = e.target.files && e.target.files[0];
-                        if (!chosen) return;
-                        const name = new Date().getTime() + chosen.name;
-                        const storageRef = ref(storage, name);
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        const storagePath = `${Date.now()}${file.name}`;
                         const uploadTask = uploadBytesResumable(
-                          storageRef,
-                          chosen
+                          ref(storage, storagePath),
+                          file
                         );
                         setUploading(true);
                         setUploadError(null);
                         uploadTask.on(
                           "state_changed",
-                          (snapshot) => {
-                            const pct =
+                          (snapshot) =>
+                            setProgress(
                               (snapshot.bytesTransferred /
                                 snapshot.totalBytes) *
-                              100;
-                            setProgress(pct);
-                          },
-                          (err) => {
+                                100
+                            ),
+                          (uploadFailure) => {
                             setUploading(false);
-                            setUploadError(err.message);
+                            setUploadError(uploadFailure.message);
                           },
                           () => {
                             getDownloadURL(uploadTask.snapshot.ref).then(
@@ -248,7 +246,6 @@ const UpdateScreen = () => {
           </div>
         </Form>
       </FormContainer>
-      {/* Image preview modal */}
       <Modal show={showImageModal} onHide={() => setShowImageModal(false)}>
         <Modal.Body className="d-flex justify-content-center">
           <LazyImage
@@ -264,7 +261,6 @@ const UpdateScreen = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-      {/* Cancel confirmation modal */}
       <div
         className="modal"
         style={{ display: showCancelModal ? "block" : "none" }}

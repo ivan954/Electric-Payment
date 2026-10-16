@@ -12,7 +12,6 @@ code {
     monospace;
 }
 
-/* Image skeleton placeholder */
 .img-skeleton {
   background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 37%, #e9ecef 63%);
   background-size: 400% 100%;
@@ -35,7 +34,6 @@ code {
   }
 }
 
-/* Fade-in for loaded images */
 .img-fade-in {
   animation: fadeIn 240ms ease forwards;
 }
@@ -155,7 +153,6 @@ code {
   }
 }
 
-/* Prevent wrapping in navbar brand and links */
 .navbar .navbar-brand,
 .navbar .nav-link,
 .navbar .navbar-nav {
@@ -165,7 +162,7 @@ code {
   margin-inline-end: 8px;
 }
 
-/* Forms: create/update screens */
+/* ---------- Forms ---------- */
 .form-card {
   background: #ffffff;
   border-radius: 8px;
@@ -255,7 +252,7 @@ code {
 
 /* RTL modal header: move close button to the left */
 [dir="rtl"] .modal-header .btn-close {
-  margin: -0.5rem auto -0.5rem -0.5rem; /* push to left */
+  margin: -0.5rem auto -0.5rem -0.5rem;
 }
 [dir="rtl"] .modal-header .modal-title {
   text-align: right;
@@ -265,7 +262,7 @@ code {
 :root {
   --brand: #102a41;
   --brand-600: #17466f;
-  --accent: #9ad14b; /* lime from the logo */
+  --accent: #9ad14b;
   --accent-600: #86bd36;
   --accent-ink: #102a41;
   --surface: #ffffff;
@@ -549,11 +546,11 @@ html body h6 {
   }
 }
 
-/* ---------- Month groups & payment cards ---------- */
-.month-group {
+/* ---------- Year groups & payment cards ---------- */
+.year-group {
   margin-bottom: 18px;
 }
-.month-group__header {
+.year-group__header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -561,7 +558,7 @@ html body h6 {
   color: var(--ink-muted);
   font-size: 14px;
 }
-.month-group__header h3 {
+.year-group__header h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
@@ -641,8 +638,44 @@ html body h6 {
 .payment-card__actions {
   grid-area: actions;
   display: flex;
-  gap: 4px;
+  gap: 8px;
   justify-content: flex-end;
+}
+.icon-btn {
+  width: 40px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  font-size: 17px;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease, transform 80ms ease;
+}
+.icon-btn:active {
+  transform: scale(0.94);
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+}
+.icon-btn--edit {
+  background: #e8eef6;
+  color: var(--brand-600);
+}
+.icon-btn--edit:hover {
+  background: var(--brand-600);
+  color: #fff;
+}
+.icon-btn--delete {
+  background: #fdecec;
+  color: #c62828;
+}
+.icon-btn--delete:hover {
+  background: #c62828;
+  color: #fff;
 }
 .status-pill {
   display: inline-flex;
@@ -845,7 +878,6 @@ button.status-pill:hover {
   padding: 18px 20px;
 }
 .stat-card--hero::after {
-  /* soft lightning glow in the corner */
   content: "\F46C";
   font-family: "bootstrap-icons";
   position: absolute;
@@ -924,7 +956,6 @@ button.status-pill:hover {
   color: var(--accent-ink);
 }
 
-/* Slimmer top bar */
 .navbar {
   padding-block: 6px;
 }

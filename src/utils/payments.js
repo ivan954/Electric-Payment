@@ -6,9 +6,11 @@ export const isPaid = (payment) =>
   /^(yes|true|כן)$/i.test(String(payment.paid).trim());
 
 export const todayISO = () => {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const now = new Date();
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+    now.getDate()
+  )}`;
 };
 
 export const formatDate = (iso) => {
@@ -49,9 +51,9 @@ export const withUsage = (payments) => {
     a.date === b.date ? a.KWH - b.KWH : a.date < b.date ? -1 : 1
   );
   return ascending
-    .map((payment, i) => ({
+    .map((payment, index) => ({
       ...payment,
-      usage: i > 0 ? payment.KWH - ascending[i - 1].KWH : null,
+      usage: index > 0 ? payment.KWH - ascending[index - 1].KWH : null,
     }))
     .reverse();
 };
@@ -74,8 +76,7 @@ export const DEFAULT_FILTERS = {
 const normalize = (text) =>
   String(text).toLowerCase().replace(/[₪,]/g, "").replace(/\s+/g, " ").trim();
 
-// Everything a person might type to find a payment: dates, month names, amounts, status
-const searchText = (payment, lang, statusLabel) =>
+const searchableText = (payment, lang, statusLabel) =>
   normalize(
     [
       payment.date,
@@ -89,8 +90,10 @@ const searchText = (payment, lang, statusLabel) =>
   );
 
 const comparators = {
-  date_desc: (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.KWH - a.KWH),
-  date_asc: (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.KWH - b.KWH),
+  date_desc: (a, b) =>
+    a.date < b.date ? 1 : a.date > b.date ? -1 : b.KWH - a.KWH,
+  date_asc: (a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : a.KWH - b.KWH,
   price_desc: (a, b) => b.price - a.price,
   price_asc: (a, b) => a.price - b.price,
   usage_desc: (a, b) => (b.usage ?? -1) - (a.usage ?? -1),
@@ -100,15 +103,17 @@ export const isDateSort = (sort) => sort.startsWith("date_");
 
 // `payments` should come from withUsage(); `statusLabel(paid)` gives the visible status text
 export const applyFilters = (payments, filters, lang, statusLabel) => {
-  const tokens = normalize(filters.q).split(" ").filter(Boolean);
+  const searchWords = normalize(filters.q).split(" ").filter(Boolean);
   return payments
-    .filter((p) => {
-      if (filters.status !== "all" && (filters.status === "paid") !== isPaid(p))
+    .filter((payment) => {
+      const paid = isPaid(payment);
+      if (filters.status !== "all" && (filters.status === "paid") !== paid)
         return false;
-      if (filters.year !== "all" && !p.date.startsWith(filters.year)) return false;
-      if (!tokens.length) return true;
-      const haystack = searchText(p, lang, statusLabel(isPaid(p)));
-      return tokens.every((token) => haystack.includes(token));
+      if (filters.year !== "all" && !payment.date.startsWith(filters.year))
+        return false;
+      if (!searchWords.length) return true;
+      const text = searchableText(payment, lang, statusLabel(paid));
+      return searchWords.every((word) => text.includes(word));
     })
     .sort(comparators[filters.sort] || comparators.date_desc);
 };
@@ -141,7 +146,10 @@ export const monthlyTotals = (payments, count = 12) => {
   const months = [];
   for (let i = count - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
     months.push({ key, total: totals[key] || 0 });
   }
   return months;
