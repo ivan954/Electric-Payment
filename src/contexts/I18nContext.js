@@ -54,7 +54,7 @@ const translations = {
     changeImageQ: "Change image?",
   },
   he: {
-    appTitle: "רכב חשמלי",
+    appTitle: "רכב חשמלי בדיקה",
     createPayment: "יצירת תשלום",
     managePayment: "ניהול תשלומים",
     logout: "יציאה",
