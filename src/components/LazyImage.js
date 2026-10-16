@@ -8,14 +8,12 @@ const LazyImage = ({ src, alt, className, style, onClick }) => {
   const imgRef = useRef(null);
   const preloaderRef = useRef(null);
 
-  // Reset when src changes
+  // Reset and re-observe when src changes
   useEffect(() => {
     setIsInView(false);
     setLoaded(false);
     setFailed(false);
-  }, [src]);
 
-  useEffect(() => {
     if (!sentinelRef.current) return;
 
     if ("IntersectionObserver" in window) {
@@ -36,7 +34,7 @@ const LazyImage = ({ src, alt, className, style, onClick }) => {
       // Fallback: load immediately
       setIsInView(true);
     }
-  }, []);
+  }, [src]);
 
   // Start preloading when in view
   useEffect(() => {

@@ -208,27 +208,13 @@ export const updatePayment =
         price: price,
       };
 
-      const examcollref = await doc(db, "payments", id);
-      updateDoc(examcollref, {
+      const examcollref = doc(db, "payments", id);
+      await updateDoc(examcollref, data);
+      await updateDoc(doc(db, "KWH", examcollref.id), {
         KWH: KWH,
         date: date,
-        image: image,
-        paid: paid,
-        price: price,
-      })
-        .then(() => {
-          updateDoc(doc(db, "KWH", examcollref.id), {
-            KWH: KWH,
-            date: date,
-            updateTime: serverTimestamp(),
-          });
-        })
-        .then(() => {
-          alert("updated");
-        })
-        .catch((error) => {
-          console.log(error.message);
-        });
+        updateTime: serverTimestamp(),
+      });
 
       dispatch({
         type: PAYMENT_UPDATE_SUCCESS,

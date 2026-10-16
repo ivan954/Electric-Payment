@@ -26,6 +26,7 @@ const UpdateScreen = () => {
   const [changeImage, setChangeImage] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadError, setUploadError] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
 
   const { id } = useParams();
@@ -187,6 +188,7 @@ const UpdateScreen = () => {
                           chosen
                         );
                         setUploading(true);
+                        setUploadError(null);
                         uploadTask.on(
                           "state_changed",
                           (snapshot) => {
@@ -196,7 +198,10 @@ const UpdateScreen = () => {
                               100;
                             setProgress(pct);
                           },
-                          () => setUploading(false),
+                          (err) => {
+                            setUploading(false);
+                            setUploadError(err.message);
+                          },
                           () => {
                             getDownloadURL(uploadTask.snapshot.ref).then(
                               (downloadURL) => {
@@ -213,6 +218,9 @@ const UpdateScreen = () => {
                         {progress.toFixed(0)}%
                       </div>
                     )}
+                    {uploadError && (
+                      <Message variant="danger">{uploadError}</Message>
+                    )}
                   </>
                 )}
               </Form.Group>
@@ -221,7 +229,12 @@ const UpdateScreen = () => {
           <br />
 
           <div className="form-actions d-flex justify-content-center gap-3">
-            <Button type="submit" variant="success" className="px-4 rounded">
+            <Button
+              type="submit"
+              variant="success"
+              className="px-4 rounded"
+              disabled={uploading}
+            >
               {t("update")}
             </Button>
             <Button
