@@ -7,6 +7,7 @@ import Loader from "../components/Loader";
 import { loginToPaiments } from "../actions/electricActions";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../contexts/I18nContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -24,11 +25,13 @@ const LoginScreen = () => {
     dispatch(loginToPaiments(email, password));
   };
 
+  const { user } = useAuth();
+
   useEffect(() => {
-    if (window.localStorage.getItem("userInfo")) {
+    if (user) {
       navigate("/");
     }
-  }, [navigate]);
+  }, [user, navigate]);
 
   return (
     <Container dir={dir}>

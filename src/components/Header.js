@@ -4,16 +4,16 @@ import { Container, Nav, Navbar } from "react-bootstrap";
 import { LinkContainer } from "react-router-bootstrap";
 import { logout } from "../actions/electricActions";
 import { useI18n } from "../contexts/I18nContext";
+import { useAuth } from "../contexts/AuthContext";
 import Logo from "../assets/Logo.png";
 
 const Header = () => {
   const dispatch = useDispatch();
   const { t, lang, setLang, dir } = useI18n();
-  const userInfo = window.localStorage.getItem("userInfo");
+  const { user: userInfo } = useAuth();
 
   const logoutHandler = () => {
     dispatch(logout());
-    window.localStorage.removeItem("userInfo"); // Ensure userInfo is removed
   };
 
   return (

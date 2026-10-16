@@ -16,6 +16,7 @@ import Loader from "../components/Loader";
 import Message from "../components/Message";
 import LazyImage from "../components/LazyImage";
 import { useI18n } from "../contexts/I18nContext";
+import { useAuth } from "../contexts/AuthContext";
 import {
   listPayments,
   deletePayment,
@@ -41,7 +42,7 @@ const ManageScreen = () => {
   const dispatch = useDispatch();
   const { t, dir } = useI18n();
 
-  const userInfo = window.localStorage.getItem("userInfo");
+  const { user: userInfo } = useAuth();
 
   const deleteHandler = (id, image) => {
     if (userInfo && window.confirm(t("confirmDelete"))) {
@@ -107,6 +108,13 @@ const ManageScreen = () => {
     indexOfLastPayment
   );
 
+  // Stay in range when the list shrinks (e.g. after deleting the last row on the last page)
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
@@ -152,6 +160,7 @@ const ManageScreen = () => {
                     <FormControl
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
+                        setCurrentPage(1);
                       }}
                       type="text"
                       placeholder={t("searchPlaceholder")}
@@ -177,6 +186,7 @@ const ManageScreen = () => {
                     <FormControl
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
+                        setCurrentPage(1);
                       }}
                       type="text"
                       placeholder={t("searchPlaceholder")}

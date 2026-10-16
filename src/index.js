@@ -8,13 +8,16 @@ import "./bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import reportWebVitals from "./reportWebVitals";
 import { I18nProvider } from "./contexts/I18nContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
-    <I18nProvider>
-      <App />
-    </I18nProvider>
+    <AuthProvider>
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    </AuthProvider>
   </Provider>
 );
 

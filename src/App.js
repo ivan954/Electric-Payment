@@ -1,15 +1,21 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import Loader from "./components/Loader";
 import { Container } from "react-bootstrap";
 import LoginScreen from "./screens/LoginScreen";
 import ManageScreen from "./screens/ManageScreen";
 import CreateScreen from "./screens/CreateScreen";
 import UpdateScreen from "./screens/UpdateScreen";
+import { useAuth } from "./contexts/AuthContext";
+
+const RequireAuth = ({ children }) => {
+  const { user, ready } = useAuth();
+  if (!ready) return <Loader />;
+  return user ? children : <Navigate to="/" />;
+};
 
 function App() {
-  const userInfo = window.localStorage.getItem("userInfo");
-
   return (
     <Router>
       <Header />
@@ -20,11 +26,19 @@ function App() {
             <Route path="/" element={<ManageScreen />} />
             <Route
               path="/create"
-              element={userInfo ? <CreateScreen /> : <Navigate to="/" />}
+              element={
+                <RequireAuth>
+                  <CreateScreen />
+                </RequireAuth>
+              }
             />
             <Route
               path="/manage/:id"
-              element={userInfo ? <UpdateScreen /> : <Navigate to="/" />}
+              element={
+                <RequireAuth>
+                  <UpdateScreen />
+                </RequireAuth>
+              }
             />
           </Routes>
         </Container>

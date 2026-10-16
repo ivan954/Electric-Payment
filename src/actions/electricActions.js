@@ -2,7 +2,6 @@ import {
   PAYMENT_LIST_REQUEST,
   PAYMENT_LIST_SUCCESS,
   PAYMENT_LIST_FAIL,
-  PAYMENT_LIST_RESET,
   PAYMENT_DETAILS_REQUEST,
   PAYMENT_DETAILS_SUCCESS,
   PAYMENT_DETAILS_FAIL,
@@ -23,7 +22,7 @@ import {
   KWH_SUCCESS,
   KWH_FAIL,
 } from "../constants/electricConstants";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
   collection,
   getDoc,
@@ -38,7 +37,6 @@ import {
 import { ref, deleteObject, getStorage } from "firebase/storage";
 import { auth } from "../firebase";
 import { db } from "../firebase";
-import moment from "moment";
 
 export const loginToPaiments = (email, password) => async (dispatch) => {
   dispatch({ type: LOGIN_REQUEST });
@@ -50,8 +48,6 @@ export const loginToPaiments = (email, password) => async (dispatch) => {
         type: LOGIN_SUCCESS,
         payload: date,
       });
-      localStorage.setItem("userInfo", JSON.stringify(date));
-      document.location.href = "/";
     })
     .catch((error) => {
       dispatch({
@@ -61,12 +57,9 @@ export const loginToPaiments = (email, password) => async (dispatch) => {
     });
 };
 
-export const logout = () => (dispatch) => {
+export const logout = () => async (dispatch) => {
+  await signOut(auth);
   dispatch({ type: USER_LOGOUT });
-  localStorage.removeItem("userInfo");
-  dispatch({ type: PAYMENT_LIST_RESET });
-  //dispatch({ type: PAYMENT_DETAILS_RESET });
-  document.location.href = "/";
 };
 
 export const listPayments = () => async (dispatch) => {
@@ -129,13 +122,14 @@ export const deletePayment = (id, image) => async (dispatch, getState) => {
     await deleteDoc(doc(db, "payments", id));
     await deleteDoc(doc(db, "KWH", id));
 
-    const storage = getStorage();
-
-    const desertRef = ref(storage, image);
-
-    deleteObject(desertRef).catch((error) => {
-      throw new Error(error);
-    });
+    // The records are already gone; a missing/undeletable image shouldn't fail the delete
+    if (image) {
+      try {
+        await deleteObject(ref(getStorage(), image));
+      } catch (storageError) {
+        console.warn("Could not delete payment image:", storageError.message);
+      }
+    }
     dispatch(getKWH());
 
     dispatch({
@@ -234,28 +228,26 @@ export const updatePayment =
   };
 
 export const getKWH = () => async (dispatch) => {
-  let data = [];
   try {
     dispatch({ type: KWH_REQUEST });
-    new Promise(async (resolve, reject) => {
-      const querySnapshotKWH = await getDocs(collection(db, "KWH"));
-      querySnapshotKWH.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() });
-      });
 
-      const maxKwhValue = await Math.max(
-        ...data.map((payment) => {
-          return payment.KWH;
-        })
-      );
-      const maxDate = new Date(moment().max(data.updateTime));
+    const snapshot = await getDocs(collection(db, "KWH"));
+    const readings = snapshot.docs.map((d) => d.data());
 
-      resolve([maxKwhValue, moment(new Date(maxDate)).format("DD/MM/YYYY")]);
-    }).then((vlalu) => {
-      dispatch({
-        type: KWH_SUCCESS,
-        payload: vlalu,
-      });
+    const maxKwh = readings.length
+      ? Math.max(...readings.map((r) => Number(r.KWH) || 0))
+      : 0;
+    const lastUpdateMs = Math.max(
+      0,
+      ...readings.map((r) => (r.updateTime ? r.updateTime.toMillis() : 0))
+    );
+    const lastUpdate = lastUpdateMs
+      ? new Date(lastUpdateMs).toLocaleDateString("en-GB")
+      : null;
+
+    dispatch({
+      type: KWH_SUCCESS,
+      payload: [maxKwh, lastUpdate],
     });
   } catch (error) {
     dispatch({
