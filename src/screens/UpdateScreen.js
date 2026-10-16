@@ -22,7 +22,6 @@ const UpdateScreen = () => {
   const [paid, setPaid] = useState("");
   const [price, setPrice] = useState(0);
   const [currentPrice, setCurrentPrice] = useState(0);
-  const [, setFile] = useState();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [changeImage, setChangeImage] = useState(false);
   const [uploading, setUploading] = useState(false);

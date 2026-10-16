@@ -28,7 +28,7 @@ const LoginScreen = () => {
     if (window.localStorage.getItem("userInfo")) {
       navigate("/");
     }
-  }, []);
+  }, [navigate]);
 
   return (
     <Container dir={dir}>

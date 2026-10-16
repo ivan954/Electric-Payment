@@ -6,7 +6,6 @@ import {
   PAYMENT_DETAILS_REQUEST,
   PAYMENT_DETAILS_SUCCESS,
   PAYMENT_DETAILS_FAIL,
-  PAYMENT_DETAILS_RESET,
   PAYMENT_DELETE_SUCCESS,
   PAYMENT_DELETE_REQUEST,
   PAYMENT_DELETE_FAIL,
@@ -23,9 +22,6 @@ import {
   KWH_REQUEST,
   KWH_SUCCESS,
   KWH_FAIL,
-  KWH_UPDATE_SUCCESS,
-  KWH_UPDATE_FAIL,
-  KWH_UPDATE_REQUEST,
 } from "../constants/electricConstants";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import {
@@ -37,7 +33,6 @@ import {
   serverTimestamp,
   getDocs,
   deleteDoc,
-  onSnapshot,
   updateDoc,
 } from "firebase/firestore";
 import { ref, deleteObject, getStorage } from "firebase/storage";

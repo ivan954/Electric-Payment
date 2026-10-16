@@ -9,7 +9,6 @@ import {
   PAYMENT_DETAILS_REQUEST,
   PAYMENT_DETAILS_SUCCESS,
   PAYMENT_DETAILS_FAIL,
-  PAYMENT_DETAILS_RESET,
   PAYMENT_DELETE_REQUEST,
   PAYMENT_DELETE_SUCCESS,
   PAYMENT_DELETE_FAIL,
@@ -26,10 +25,6 @@ import {
   KWH_SUCCESS,
   KWH_FAIL,
   KWH_RESET,
-  KWH_UPDATE_REQUEST,
-  KWH_UPDATE_SUCCESS,
-  KWH_UPDATE_FAIL,
-  KWH_UPDATE_RESET,
 } from "../constants/electricConstants";
 
 export const loginReducer = (state = {}, action) => {
