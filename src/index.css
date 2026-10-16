@@ -118,9 +118,17 @@ code {
 }
 
 /* Loading Div */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
 .spinner {
-  margin-top: 100px;
-  margin-bottom: 100px;
+  margin: 0;
 }
 .spinner:before {
   transform: rotateX(60deg) rotateY(45deg) rotateZ(45deg);
