@@ -1,304 +1,269 @@
-import React, { useEffect, useState, useMemo } from "react";
-import {
-  Button,
-  Col,
-  Container,
-  FormControl,
-  InputGroup,
-  Modal,
-  Row,
-  Table,
-} from "react-bootstrap";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Button, Modal } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { LinkContainer } from "react-router-bootstrap";
-import {} from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
 import LazyImage from "../components/LazyImage";
+import PaymentCard from "../components/PaymentCard";
+import SummaryCards from "../components/SummaryCards";
+import PaymentFilters from "../components/PaymentFilters";
 import { useI18n } from "../contexts/I18nContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
   listPayments,
   deletePayment,
-  getKWH,
+  setPaymentsPaid,
 } from "../actions/electricActions";
+import {
+  DEFAULT_FILTERS,
+  SORT_OPTIONS,
+  applyFilters,
+  formatCurrency,
+  groupByYear,
+  isDateSort,
+  isPaid,
+  summarize,
+  withUsage,
+} from "../utils/payments";
 import ".././index.css";
 
 const ManageScreen = () => {
-  const electricKWH = useSelector((state) => state.electricKWH);
-  const { loading: kwhLoader } = electricKWH;
+  const {
+    loading,
+    error,
+    payments = [],
+  } = useSelector((state) => state.electricList);
+  const { loading: deleteLoader, success: successDelete } = useSelector(
+    (state) => state.electricDelete
+  );
 
-  const electricList = useSelector((state) => state.electricList);
-  const { loading, error, payments } = electricList;
-
-  const electricDelete = useSelector((state) => state.electricDelete);
-  const { loading: deleteLoader, success: successDelete } = electricDelete;
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedImage, setSelectedImage] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   const dispatch = useDispatch();
-  const { t, dir } = useI18n();
-
-  const { user: userInfo } = useAuth();
-
-  const deleteHandler = (id, image) => {
-    if (userInfo && window.confirm(t("confirmDelete"))) {
-      dispatch(deletePayment(id, image));
-    }
-  };
+  const { t, lang, dir } = useI18n();
+  const { user } = useAuth();
+  const canEdit = Boolean(user);
 
   useEffect(() => {
     dispatch(listPayments());
-    dispatch(getKWH());
   }, [dispatch, successDelete]);
 
-  const formatDateString = (dateString) => {
-    const [year, month, day] = dateString.split("-");
-    return `${day}/${month}/${year}`;
-  };
+  // Extended "add" button: shrink to an icon while scrolling down, expand on the way up
+  const [fabCompact, setFabCompact] = useState(false);
+  const lastScrollY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - lastScrollY.current) < 8) return;
+      setFabCompact(y > lastScrollY.current && y > 120);
+      lastScrollY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  // Find the most recent payment
-  const latestPayment = useMemo(() => {
-    if (payments.length === 0) return null;
-    return payments.reduce((latest, payment) => {
-      const latestDate = new Date(latest.date);
-      const paymentDate = new Date(payment.date);
-      return paymentDate > latestDate ? payment : latest;
-    });
-  }, [payments]);
+  const sorted = useMemo(() => withUsage(payments), [payments]);
+  const summary = useMemo(() => summarize(sorted), [sorted]);
 
-  const filteredPayments = useMemo(() => {
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-
-    // Filter the payments based on the search term matching any field
-    return payments
-      .filter((payment) => {
-        const formattedDate = formatDateString(payment.date);
-
-        return (
-          formattedDate.includes(lowerCaseSearchTerm) || // Check formatted date
-          payment.paid.toLowerCase().includes(lowerCaseSearchTerm) ||
-          payment.KWH.toString().toLowerCase().includes(lowerCaseSearchTerm) ||
-          payment.price.toString().toLowerCase().includes(lowerCaseSearchTerm)
-        );
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
-  }, [payments, searchTerm]);
-
-  const openModal = (image) => {
-    setSelectedImage(image);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setSelectedImage(null);
-    setShowModal(false);
-  };
-
-  // Pagination Logic
-  const itemsPerPage = 4;
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
-  const indexOfLastPayment = currentPage * itemsPerPage;
-  const indexOfFirstPayment = indexOfLastPayment - itemsPerPage;
-  const currentPayments = filteredPayments.slice(
-    indexOfFirstPayment,
-    indexOfLastPayment
+  const years = useMemo(
+    () => [...new Set(sorted.map((p) => p.date.slice(0, 4)))],
+    [sorted]
   );
 
-  // Stay in range when the list shrinks (e.g. after deleting the last row on the last page)
-  useEffect(() => {
-    if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+  // Filters live in the URL so refresh / back / shared links keep them
+  const filters = useMemo(() => {
+    const get = (key) => searchParams.get(key) || DEFAULT_FILTERS[key];
+    const sort = get("sort");
+    return {
+      q: get("q"),
+      status: ["all", "paid", "unpaid"].includes(get("status"))
+        ? get("status")
+        : "all",
+      year: get("year"),
+      sort: SORT_OPTIONS.includes(sort) ? sort : DEFAULT_FILTERS.sort,
+    };
+  }, [searchParams]);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const setFilters = (next) => {
+    const params = {};
+    Object.keys(DEFAULT_FILTERS).forEach((key) => {
+      if (next[key] && next[key] !== DEFAULT_FILTERS[key])
+        params[key] = next[key];
+    });
+    setSearchParams(params, { replace: true });
+  };
+
+  const statusLabel = (paid) => (paid ? t("statusPaid") : t("statusUnpaid"));
+
+  const visible = useMemo(
+    () => applyFilters(sorted, filters, lang, statusLabel),
+    // statusLabel only depends on t, which changes with lang
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sorted, filters, lang]
+  );
+
+  // Status counts reflect the other active filters, so each chip previews its result
+  const statusCounts = useMemo(() => {
+    const base = applyFilters(
+      sorted,
+      { ...filters, status: "all" },
+      lang,
+      statusLabel
+    );
+    const paid = base.filter(isPaid).length;
+    return { all: base.length, paid, unpaid: base.length - paid };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, filters, lang]);
+
+  const groups = useMemo(
+    () =>
+      isDateSort(filters.sort)
+        ? groupByYear(visible)
+        : [{ key: null, payments: visible }],
+    [visible, filters.sort]
+  );
+  const visibleTotal = visible.reduce(
+    (sum, p) => sum + (Number(p.price) || 0),
+    0
+  );
+
+  const updatePaid = (ids, paid) => {
+    setActionError(null);
+    dispatch(setPaymentsPaid(ids, paid)).catch(() =>
+      setActionError(t("updateFailed"))
+    );
+  };
+
+  const confirmDelete = () => {
+    dispatch(deletePayment(pendingDelete.id, pendingDelete.image));
+    setPendingDelete(null);
+  };
+
+  if (loading) return <Loader />;
+  if (error) return <Message variant="danger">{error}</Message>;
 
   return (
-    <div dir={dir}>
-      {loading ? (
-        <Loader />
-      ) : error ? (
-        <Message variant="danger">{error}</Message>
+    <div dir={dir} className="manage-screen">
+      <SummaryCards
+        summary={summary}
+        canEdit={canEdit}
+        onMarkAllPaid={(ids) => updatePaid(ids, "Yes")}
+      />
+
+
+      {actionError && <Message variant="danger">{actionError}</Message>}
+
+      <PaymentFilters
+        filters={filters}
+        onChange={setFilters}
+        years={years}
+        statusCounts={statusCounts}
+        resultCount={visible.length}
+        totalCount={sorted.length}
+        resultTotal={visibleTotal}
+      />
+
+      {deleteLoader && <Loader />}
+
+      {visible.length === 0 ? (
+        <div className="empty-state">
+          <i
+            className={`bi ${sorted.length ? "bi-search" : "bi-inbox"}`}
+            aria-hidden="true"
+          ></i>
+          <p>{sorted.length ? t("noResults") : t("noPayments")}</p>
+          {sorted.length > 0 && (
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => setFilters(DEFAULT_FILTERS)}
+            >
+              {t("resetFilters")}
+            </Button>
+          )}
+        </div>
       ) : (
-        <Container>
-          <Row className="align-items-center">
-            <Col xs={12} md={6} className="mb-3">
-              {kwhLoader ? (
-                <Loader />
-              ) : (
-                <div className="ManageTitles">
-                  {latestPayment && (
-                    <>
-                      {t("kwh")}: {latestPayment.KWH}
-                      <br />
-                      {t("lastUpdate")}: {formatDateString(latestPayment.date)}
-                    </>
-                  )}
-                </div>
-              )}
-            </Col>
-            <Col xs={12} md={6} className="p-2">
-              <InputGroup className="payments-search-group">
-                {dir === "rtl" ? (
-                  <>
-                    <InputGroup.Text>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 16 16"
-                        width="16"
-                        height="16"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" />
-                      </svg>
-                    </InputGroup.Text>
-                    <FormControl
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      type="text"
-                      placeholder={t("searchPlaceholder")}
-                      className="payments-search"
-                      value={searchTerm}
-                      aria-label="Search payments"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <InputGroup.Text>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 16 16"
-                        width="16"
-                        height="16"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" />
-                      </svg>
-                    </InputGroup.Text>
-                    <FormControl
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      type="text"
-                      placeholder={t("searchPlaceholder")}
-                      className="payments-search"
-                      value={searchTerm}
-                      aria-label="Search payments"
-                    />
-                  </>
-                )}
-              </InputGroup>
-            </Col>
-          </Row>
-
-          {deleteLoader && <Loader />}
-          <Table
-            striped
-            hover
-            className="table-sm table-borderless payments-table"
-          >
-            <thead>
-              <tr>
-                <th>{t("image")}</th>
-                <th>{t("kwh")}</th>
-                <th>{t("paidDate")}</th>
-                <th>{t("price")}</th>
-                <th>{t("paid")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td data-label={t("image")}>
-                    <Button variant="outline-light">
-                      <LazyImage
-                        onClick={() => openModal(payment.image)}
-                        className="payment-img"
-                        src={payment.image}
-                        alt="payment"
-                      />
-                    </Button>
-                  </td>
-                  <td data-label={t("kwh")}>{payment.KWH}</td>
-                  <td data-label={t("paidDate")}>
-                    <span className="date-cell">
-                      {formatDateString(payment.date)}
-                    </span>
-                  </td>
-                  <td data-label={t("price")}>{payment.price.toFixed(2)}</td>
-                  <td data-label={t("paid")}>{payment.paid}</td>
-                  <td data-label={t("actions")}>
-                    <div className="updateDeleteDiv">
-                      {userInfo ? (
-                        <>
-                          <LinkContainer to={`/manage/${payment.id}`}>
-                            <Button variant="info rounded" className="btn-sm">
-                              {t("update")}
-                            </Button>
-                          </LinkContainer>{" "}
-                          <Button
-                            variant="danger"
-                            className="btn-sm rounded"
-                            onClick={() =>
-                              deleteHandler(payment.id, payment.image)
-                            }
-                          >
-                            {t("delete")}
-                          </Button>
-                        </>
-                      ) : (
-                        <span>{t("loginToEdit")}</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-
-          {/* Pagination */}
-          <ul className="pagination justify-content-center">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <li
-                key={i}
-                className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
-              >
-                <Button
-                  onClick={() => paginate(i + 1)}
-                  className="page-link"
-                  aria-current={currentPage === i + 1 ? "page" : undefined}
-                >
-                  {i + 1}
-                </Button>
-              </li>
+        groups.map((group) => (
+          <section key={group.key || "all"} className="month-group">
+            {group.key && (
+              <header className="month-group__header">
+                <h3>{group.key}</h3>
+                <span>
+                  {group.payments.length} {t("paymentsCount")} ·{" "}
+                  <strong>{formatCurrency(group.total, lang)}</strong>
+                </span>
+              </header>
+            )}
+            {group.payments.map((payment) => (
+              <PaymentCard
+                key={payment.id}
+                payment={payment}
+                canEdit={canEdit}
+                onOpenImage={setSelectedImage}
+                onDelete={setPendingDelete}
+                onTogglePaid={(p) =>
+                  updatePaid([p.id], isPaid(p) ? "No" : "Yes")
+                }
+              />
             ))}
-          </ul>
-        </Container>
+          </section>
+        ))
       )}
 
-      {/* Modal */}
-      <Modal show={showModal} onHide={closeModal}>
+      {canEdit && (
+        <LinkContainer to="/create">
+          <Button
+            className={`fab ${fabCompact ? "fab--compact" : ""}`}
+            aria-label={t("createPayment")}
+          >
+            <span className="fab__icon" aria-hidden="true">
+              <i className="bi bi-plus-lg"></i>
+            </span>
+            <span className="fab__label">{t("newPayment")}</span>
+          </Button>
+        </LinkContainer>
+      )}
+
+      <Modal
+        show={Boolean(selectedImage)}
+        onHide={() => setSelectedImage(null)}
+        centered
+      >
         <Modal.Body className="d-flex justify-content-center">
           <LazyImage
             src={selectedImage}
-            alt="payment receipt"
+            alt={t("image")}
             className="modal-img"
             style={{ maxWidth: "100%", maxHeight: "80vh", height: "auto" }}
           />
         </Modal.Body>
         <Modal.Footer className="d-flex justify-content-center">
-          <Button variant="secondary" onClick={closeModal}>
+          <Button variant="secondary" onClick={() => setSelectedImage(null)}>
             {t("close")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={Boolean(pendingDelete)}
+        onHide={() => setPendingDelete(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{t("deleteTitle")}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>{t("deleteBody")}</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setPendingDelete(null)}>
+            {t("cancel")}
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            {t("delete")}
           </Button>
         </Modal.Footer>
       </Modal>

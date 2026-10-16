@@ -21,6 +21,7 @@ import {
   KWH_REQUEST,
   KWH_SUCCESS,
   KWH_FAIL,
+  PAYMENT_PAID_SET,
 } from "../constants/electricConstants";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
@@ -33,6 +34,7 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { ref, deleteObject, getStorage } from "firebase/storage";
 import { auth } from "../firebase";
@@ -257,5 +259,25 @@ export const getKWH = () => async (dispatch) => {
           ? error.response.data.message
           : error.message,
     });
+  }
+};
+
+// Optimistically flips the "paid" flag on one or more payments; reverts if the write fails
+export const setPaymentsPaid = (ids, paid) => async (dispatch, getState) => {
+  const previous = getState()
+    .electricList.payments.filter((p) => ids.includes(p.id))
+    .map((p) => ({ id: p.id, paid: p.paid }));
+
+  dispatch({ type: PAYMENT_PAID_SET, payload: { ids, paid } });
+
+  try {
+    const batch = writeBatch(db);
+    ids.forEach((id) => batch.update(doc(db, "payments", id), { paid }));
+    await batch.commit();
+  } catch (error) {
+    previous.forEach(({ id, paid: oldPaid }) =>
+      dispatch({ type: PAYMENT_PAID_SET, payload: { ids: [id], paid: oldPaid } })
+    );
+    throw error;
   }
 };

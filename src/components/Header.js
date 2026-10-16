@@ -30,7 +30,7 @@ const Header = () => {
               <img
                 src={Logo}
                 alt={t("appTitle")}
-                height="60"
+                height="44"
                 style={{ width: "auto" }}
               />
               <span>{t("appTitle")}</span>

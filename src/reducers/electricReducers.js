@@ -6,6 +6,7 @@ import {
   PAYMENT_LIST_SUCCESS,
   PAYMENT_LIST_FAIL,
   PAYMENT_LIST_RESET,
+  PAYMENT_PAID_SET,
   PAYMENT_DETAILS_REQUEST,
   PAYMENT_DETAILS_SUCCESS,
   PAYMENT_DETAILS_FAIL,
@@ -55,6 +56,15 @@ export const electricListReducer = (state = { payments: [] }, action) => {
       };
     case PAYMENT_LIST_FAIL:
       return { loading: false, error: action.payload };
+    case PAYMENT_PAID_SET: {
+      const { ids, paid } = action.payload;
+      return {
+        ...state,
+        payments: state.payments.map((p) =>
+          ids.includes(p.id) ? { ...p, paid } : p
+        ),
+      };
+    }
     case PAYMENT_LIST_RESET:
       return { payments: [] };
     default:

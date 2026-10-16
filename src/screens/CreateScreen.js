@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Button,
   Container,
   Form,
-  ProgressBar,
   InputGroup,
+  Modal,
+  ProgressBar,
 } from "react-bootstrap";
 import FormContainer from "../components/FormContainer";
 import Loader from "../components/Loader";
@@ -16,71 +17,51 @@ import {
   KWH_RESET,
 } from "../constants/electricConstants";
 import { createPayment, getKWH } from "../actions/electricActions";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 import { storage } from "../firebase";
 import { useI18n } from "../contexts/I18nContext";
+import {
+  PRICE_PER_KWH,
+  formatCurrency,
+  formatNumber,
+  todayISO,
+} from "../utils/payments";
 
 const CreateScreen = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { t, dir } = useI18n();
+  const { t, lang, dir } = useI18n();
 
-  // Local state for input fields and operations
-  const [price, setPrice] = useState(0);
-  const [paid, setPaid] = useState("");
-  const [date, setDate] = useState("");
-  const [image, setImage] = useState(null);
-  const [file, setFile] = useState(null);
+  const [paid, setPaid] = useState("No");
+  const [date, setDate] = useState(todayISO);
+  const [KWH, setKwh] = useState("");
   const [currentKWH, setCurrentKWH] = useState(0);
-  const [KWH, setKwh] = useState(0);
 
-  const [progressBar, setProgressBar] = useState(0);
-  const [upload, setUpload] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  const [submitted, setSubmitted] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  // Selectors for Redux state
-  const electricKWH = useSelector((state) => state.electricKWH);
-  const { data } = electricKWH;
+  const cameraInput = useRef(null);
+  const galleryInput = useRef(null);
+  const uploadedPath = useRef(null); // storage path of an upload not yet saved to a payment
 
-  const electricCreate = useSelector((state) => state.electricCreate);
+  const { data } = useSelector((state) => state.electricKWH);
   const {
     loading: loadingCreate,
     error: errorCreate,
     success: successCreate,
-  } = electricCreate;
+  } = useSelector((state) => state.electricCreate);
 
-  // Handler for form submission
-  const createProductHandler = (e) => {
-    e.preventDefault();
-
-    if (KWH > currentKWH) {
-      const name = new Date().getTime() + file.name;
-      const storageRef = ref(storage, name);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgressBar(progress);
-        },
-        (error) => {
-          console.log(error.message);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            setImage(downloadURL);
-            setUpload(true);
-          });
-        }
-      );
-    } else {
-      alert(`kWh needs to be greater than current kWh: ${currentKWH}`);
-    }
-  };
-
-  // Effect hook for fetching data and updating state
   useEffect(() => {
     dispatch(getKWH());
   }, [dispatch]);
@@ -88,29 +69,72 @@ const CreateScreen = () => {
   useEffect(() => {
     if (data && data.length > 0) {
       setCurrentKWH(data[0]);
-      setKwh(data[0]); // Initialize KWH with the current KWH value
     }
   }, [data]);
 
   useEffect(() => {
-    if (upload && file && progressBar === 100 && image) {
-      dispatch(createPayment(KWH, date, price, paid, image));
-      setUpload(false);
-    }
-  }, [dispatch, upload, file, progressBar, image, KWH, date, price, paid]);
-
-  useEffect(() => {
     if (successCreate) {
+      uploadedPath.current = null; // now owned by the saved payment
       dispatch({ type: PAYMENT_CREATE_RESET });
       dispatch({ type: KWH_RESET });
       navigate("/");
     }
   }, [dispatch, successCreate, navigate]);
 
-  useEffect(() => {
-    // Update the price based on the difference between KWH and currentKWH
-    setPrice((KWH - currentKWH) * 0.57);
-  }, [KWH, currentKWH]);
+  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
+
+  const discardUpload = () => {
+    if (uploadedPath.current) {
+      deleteObject(ref(storage, uploadedPath.current)).catch(() => {});
+      uploadedPath.current = null;
+    }
+  };
+
+  // Upload as soon as a photo is picked so saving is instant
+  const handleFile = (file) => {
+    if (!file) return;
+    discardUpload();
+    setPreview(URL.createObjectURL(file));
+    setImageUrl(null);
+    setUploadError(null);
+    setUploading(true);
+    setProgress(0);
+
+    const path = `${Date.now()}${file.name}`;
+    const task = uploadBytesResumable(ref(storage, path), file);
+    task.on(
+      "state_changed",
+      (snapshot) =>
+        setProgress((snapshot.bytesTransferred / snapshot.totalBytes) * 100),
+      () => {
+        setUploading(false);
+        setUploadError(t("uploadFailed"));
+      },
+      async () => {
+        uploadedPath.current = path;
+        setImageUrl(await getDownloadURL(task.snapshot.ref));
+        setUploading(false);
+      }
+    );
+  };
+
+  const kwhValue = parseFloat(KWH);
+  const usage = Number.isFinite(kwhValue) ? kwhValue - currentKWH : 0;
+  const kwhInvalid = KWH !== "" && usage <= 0;
+  const price = usage > 0 ? usage * PRICE_PER_KWH : 0;
+
+  const submitHandler = (e) => {
+    e.preventDefault();
+    setSubmitted(true);
+    if (!Number.isFinite(kwhValue) || usage <= 0 || !imageUrl || !date) return;
+    dispatch(createPayment(kwhValue, date, price, paid, imageUrl));
+  };
+
+  const leave = () => {
+    discardUpload();
+    setShowCancelModal(false);
+    navigate("/");
+  };
 
   return (
     <Container dir={dir}>
@@ -123,111 +147,166 @@ const CreateScreen = () => {
         {loadingCreate ? (
           <Loader />
         ) : (
-          <Form onSubmit={createProductHandler}>
+          <Form noValidate onSubmit={submitHandler}>
             <div className="form-grid">
               <div>
-                <Form.Group controlId="catalogNumber">
-                  <Form.Label>{t("isPaidQ")}</Form.Label>
-                  <InputGroup className="input-icon-group">
-                    <InputGroup.Text>
-                      <i className="bi bi-check-lg"></i>
-                    </InputGroup.Text>
-                    <Form.Select
-                      required
-                      value={paid}
-                      onChange={(e) => setPaid(e.target.value)}
-                    >
-                      <option value="">--</option>
-                      <option value="Yes">{t("yes")}</option>
-                      <option value="No">{t("no")}</option>
-                    </Form.Select>
-                  </InputGroup>
-                </Form.Group>
-
-                <br />
-                <Form.Group controlId="KWH">
-                  <Form.Label>{t("kwh")}</Form.Label>
-                  <InputGroup className="input-icon-group">
+                <Form.Group controlId="KWH" className="mb-3">
+                  <Form.Label>{t("newReading")}</Form.Label>
+                  <InputGroup className="input-icon-group" hasValidation>
                     <InputGroup.Text>
                       <i className="bi bi-lightning-charge"></i>
                     </InputGroup.Text>
                     <Form.Control
-                      required
                       type="number"
+                      inputMode="decimal"
                       min={0}
+                      step="any"
+                      autoFocus
+                      placeholder={formatNumber(currentKWH, lang)}
                       value={KWH}
-                      onChange={(e) => {
-                        setKwh(parseFloat(e.target.value));
-                      }}
+                      isInvalid={kwhInvalid || (submitted && KWH === "")}
+                      onChange={(e) => setKwh(e.target.value)}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {t("kwhMustBeHigher")} ({formatNumber(currentKWH, lang)})
+                    </Form.Control.Feedback>
                   </InputGroup>
-                  <p>
-                    {t("currentKwh")}: {currentKWH}
-                  </p>
+                  <Form.Text muted>
+                    {t("currentKwh")}: {formatNumber(currentKWH, lang)}
+                  </Form.Text>
                 </Form.Group>
 
-                <br />
-                <Form.Group controlId="Data">
+                <div className={`live-calc ${usage > 0 ? "is-ready" : ""}`}>
+                  <span>
+                    {t("charged")}{" "}
+                    <strong>
+                      {usage > 0 ? `+${formatNumber(usage, lang)}` : "—"}{" "}
+                      {t("kwhUnit")}
+                    </strong>
+                    {" × "}
+                    {formatCurrency(PRICE_PER_KWH, lang)}
+                  </span>
+                  <span className="live-calc__total">
+                    {formatCurrency(price, lang)}
+                  </span>
+                </div>
+
+                <Form.Group controlId="date" className="mb-3">
                   <Form.Label>{t("date")}</Form.Label>
                   <InputGroup className="input-icon-group">
                     <InputGroup.Text>
                       <i className="bi bi-calendar3"></i>
                     </InputGroup.Text>
                     <Form.Control
-                      required
                       type="date"
                       value={date}
-                      onChange={(e) => {
-                        setDate(e.target.value);
-                      }}
+                      max={todayISO()}
+                      isInvalid={submitted && !date}
+                      onChange={(e) => setDate(e.target.value)}
                     />
                   </InputGroup>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>{t("isPaidQ")}</Form.Label>
+                  <div className="segmented" role="radiogroup">
+                    {["No", "Yes"].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={paid === value}
+                        className={paid === value ? "is-active" : ""}
+                        onClick={() => setPaid(value)}
+                      >
+                        {value === "Yes" ? t("statusPaid") : t("statusUnpaid")}
+                      </button>
+                    ))}
+                  </div>
                 </Form.Group>
               </div>
 
               <div>
-                <Form.Group controlId="image">
-                  <Form.Label>{t("image")}</Form.Label>
-                  <Form.Control
-                    required
+                <Form.Label>{t("meterPhoto")}</Form.Label>
+                <div
+                  className={`photo-drop ${
+                    submitted && !imageUrl && !uploading ? "is-invalid" : ""
+                  }`}
+                >
+                  {preview ? (
+                    <img src={preview} alt="" className="photo-drop__preview" />
+                  ) : (
+                    <i className="bi bi-camera photo-drop__icon" aria-hidden="true"></i>
+                  )}
+                  <div className="photo-drop__buttons">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => cameraInput.current.click()}
+                    >
+                      <i className="bi bi-camera" aria-hidden="true"></i>{" "}
+                      {t("takePhoto")}
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={() => galleryInput.current.click()}
+                    >
+                      <i className="bi bi-image" aria-hidden="true"></i>{" "}
+                      {t("chooseFromGallery")}
+                    </Button>
+                  </div>
+                  <input
+                    ref={cameraInput}
                     type="file"
-                    onChange={(e) => {
-                      setFile(e.target.files[0]);
-                    }}
+                    accept="image/*"
+                    capture="environment"
+                    hidden
+                    onChange={(e) => handleFile(e.target.files[0])}
                   />
-                  <ProgressBar
-                    now={progressBar}
-                    label={`${progressBar.toFixed(0)}%`}
-                    animated
+                  <input
+                    ref={galleryInput}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) => handleFile(e.target.files[0])}
                   />
-                </Form.Group>
-
-                <br />
-                <Form.Group controlId="price">
-                  <Form.Label>{t("price")}</Form.Label>
-                  <InputGroup className="input-icon-group">
-                    <InputGroup.Text>₪</InputGroup.Text>
-                    <Form.Control
-                      required
-                      type="number"
-                      disabled
-                      placeholder={t("enterPrice")}
-                      value={price.toFixed(2)}
+                  {uploading && (
+                    <ProgressBar
+                      now={progress}
+                      label={`${progress.toFixed(0)}%`}
+                      className="w-100"
                     />
-                  </InputGroup>
-                </Form.Group>
+                  )}
+                  {imageUrl && !uploading && (
+                    <small className="text-success">
+                      <i className="bi bi-check-circle" aria-hidden="true"></i>{" "}
+                      {t("photoUploaded")}
+                    </small>
+                  )}
+                  {uploadError && <small className="text-danger">{uploadError}</small>}
+                  {submitted && !imageUrl && !uploading && !uploadError && (
+                    <small className="text-danger">{t("photoRequired")}</small>
+                  )}
+                </div>
               </div>
             </div>
 
-            <br />
-            {errorCreate && <Message variant="danger">{errorCreate}</Message>}
-            <div className="form-actions d-flex justify-content-center gap-3">
-              <Button type="submit" variant="success" className="px-4 rounded">
-                {t("create")}
+            {errorCreate && (
+              <Message variant="danger">{errorCreate}</Message>
+            )}
+            <div className="form-actions d-flex justify-content-center gap-3 mt-4">
+              <Button
+                type="submit"
+                variant="success"
+                className="px-4 rounded"
+                disabled={uploading}
+              >
+                {uploading ? t("uploading") : t("create")}
               </Button>
               <Button
                 onClick={() => setShowCancelModal(true)}
-                variant="danger"
+                variant="outline-secondary"
                 className="px-4 rounded"
               >
                 {t("cancel")}
@@ -236,43 +315,21 @@ const CreateScreen = () => {
           </Form>
         )}
       </FormContainer>
-      {/* Cancel confirmation modal */}
-      <div
-        className="modal"
-        style={{ display: showCancelModal ? "block" : "none" }}
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">{t("confirmLeaveTitle")}</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setShowCancelModal(false)}
-                aria-label="Close"
-              ></button>
-            </div>
-            <div className="modal-body">{t("confirmLeaveBody")}</div>
-            <div className="modal-footer">
-              <Button
-                variant="secondary"
-                onClick={() => setShowCancelModal(false)}
-              >
-                {t("stay")}
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setShowCancelModal(false);
-                  navigate("/");
-                }}
-              >
-                {t("leave")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+
+      <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{t("confirmLeaveTitle")}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>{t("confirmLeaveBody")}</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCancelModal(false)}>
+            {t("stay")}
+          </Button>
+          <Button variant="danger" onClick={leave}>
+            {t("leave")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
