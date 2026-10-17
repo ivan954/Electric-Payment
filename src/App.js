@@ -7,6 +7,7 @@ import LoginScreen from "./screens/LoginScreen";
 import ManageScreen from "./screens/ManageScreen";
 import CreateScreen from "./screens/CreateScreen";
 import UpdateScreen from "./screens/UpdateScreen";
+import SettingsScreen from "./screens/SettingsScreen";
 import { useAuth } from "./contexts/AuthContext";
 
 const RequireAuth = ({ children }) => {
@@ -37,6 +38,14 @@ function App() {
               element={
                 <RequireAuth>
                   <UpdateScreen />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RequireAuth>
+                  <SettingsScreen />
                 </RequireAuth>
               }
             />

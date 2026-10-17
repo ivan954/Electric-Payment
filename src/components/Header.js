@@ -56,6 +56,12 @@ const Header = () => {
                     {t("createPayment")}
                   </Nav.Link>
                 </LinkContainer>
+                <LinkContainer to="/settings">
+                  <Nav.Link>
+                    <i className="bi bi-gear nav-icon"></i>
+                    {t("settings")}
+                  </Nav.Link>
+                </LinkContainer>
                 <Nav.Link
                   onClick={() => setLang(lang === "he" ? "en" : "he")}
                   title={lang === "he" ? "English" : "עברית"}

@@ -14,7 +14,7 @@ import {
   KWH_RESET,
 } from "../constants/electricConstants";
 import { useI18n } from "../contexts/I18nContext";
-import { PRICE_PER_KWH } from "../utils/payments";
+import { priceOfPayment } from "../utils/pricing";
 
 const UpdateScreen = () => {
   const [KWH, setKwh] = useState(0);
@@ -68,8 +68,8 @@ const UpdateScreen = () => {
   }, [dispatch, navigate, id, payment, successUpdate]);
 
   useEffect(() => {
-    setPrice((KWH - payment.KWH) * PRICE_PER_KWH + savedPrice);
-  }, [KWH, payment.KWH, savedPrice]);
+    setPrice((KWH - payment.KWH) * priceOfPayment(payment) + savedPrice);
+  }, [KWH, payment, savedPrice]);
 
   return (
     <Container dir={dir}>

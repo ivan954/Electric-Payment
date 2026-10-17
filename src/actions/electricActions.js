@@ -136,7 +136,7 @@ export const deletePayment = (id, image) => async (dispatch) => {
 };
 
 export const createPayment =
-  (KWH, date, price, paid, image) => async (dispatch) => {
+  (KWH, date, price, paid, image, pricePerKwh) => async (dispatch) => {
     try {
       dispatch({
         type: PAYMENT_CREATE_REQUEST,
@@ -148,6 +148,7 @@ export const createPayment =
         image,
         paid,
         price,
+        pricePerKwh,
         updateTime: serverTimestamp(),
       });
 

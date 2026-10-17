@@ -1,7 +1,5 @@
 // Shared helpers for payment records ({ id, KWH, date: "YYYY-MM-DD", price, paid, image })
 
-export const PRICE_PER_KWH = 0.57;
-
 export const isPaid = (payment) =>
   /^(yes|true|כן)$/i.test(String(payment.paid).trim());
 

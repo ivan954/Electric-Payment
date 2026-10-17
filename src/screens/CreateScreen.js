@@ -25,8 +25,8 @@ import {
 } from "firebase/storage";
 import { storage } from "../firebase";
 import { useI18n } from "../contexts/I18nContext";
+import usePricing from "../hooks/usePricing";
 import {
-  PRICE_PER_KWH,
   formatCurrency,
   formatNumber,
   todayISO,
@@ -36,6 +36,7 @@ const CreateScreen = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { t, lang, dir } = useI18n();
+  const { pricePerKwh, loading: loadingPricing } = usePricing();
 
   const [paid, setPaid] = useState("No");
   const [date, setDate] = useState(todayISO);
@@ -120,14 +121,22 @@ const CreateScreen = () => {
   const newReading = parseFloat(readingInput);
   const usage = Number.isFinite(newReading) ? newReading - currentReading : 0;
   const isReadingInvalid = readingInput !== "" && usage <= 0;
-  const price = usage > 0 ? usage * PRICE_PER_KWH : 0;
+  const price = usage > 0 ? usage * pricePerKwh : 0;
 
   const submitHandler = (e) => {
     e.preventDefault();
     setSubmitted(true);
-    if (!Number.isFinite(newReading) || usage <= 0 || !imageUrl || !date)
+    if (
+      !Number.isFinite(newReading) ||
+      usage <= 0 ||
+      !imageUrl ||
+      !date ||
+      loadingPricing
+    )
       return;
-    dispatch(createPayment(newReading, date, price, paid, imageUrl));
+    dispatch(
+      createPayment(newReading, date, price, paid, imageUrl, pricePerKwh)
+    );
   };
 
   const leave = () => {
@@ -176,6 +185,8 @@ const CreateScreen = () => {
                   </InputGroup>
                   <Form.Text muted>
                     {t("currentKwh")}: {formatNumber(currentReading, lang)}
+                    {" · "}
+                    {t("rate")}: {pricePerKwh} ₪ / {t("kwhUnit")}
                   </Form.Text>
                 </Form.Group>
 
@@ -187,7 +198,7 @@ const CreateScreen = () => {
                       {t("kwhUnit")}
                     </strong>
                     {" × "}
-                    {formatCurrency(PRICE_PER_KWH, lang)}
+                    {pricePerKwh} ₪
                   </span>
                   <span className="live-calc__total">
                     {formatCurrency(price, lang)}
@@ -306,7 +317,7 @@ const CreateScreen = () => {
                 type="submit"
                 variant="success"
                 className="px-4 rounded"
-                disabled={uploading}
+                disabled={uploading || loadingPricing}
               >
                 {uploading ? t("uploading") : t("create")}
               </Button>
