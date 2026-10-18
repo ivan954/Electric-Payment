@@ -1,0 +1,18 @@
+{
+  "files": {
+    "main.css": "/Electric-Payment/static/css/main.43ee40ac.css",
+    "main.js": "/Electric-Payment/static/js/main.0073f1da.js",
+    "static/js/787.c0c7c225.chunk.js": "/Electric-Payment/static/js/787.c0c7c225.chunk.js",
+    "static/media/Logo.png": "/Electric-Payment/static/media/Logo.c557cc320aaf573c3584.png",
+    "static/media/bootstrap-icons.woff?": "/Electric-Payment/static/media/bootstrap-icons.1295669cd4e305c97f2c.woff",
+    "static/media/bootstrap-icons.woff2?": "/Electric-Payment/static/media/bootstrap-icons.92ea18a81d737146ff04.woff2",
+    "index.html": "/Electric-Payment/index.html",
+    "main.43ee40ac.css.map": "/Electric-Payment/static/css/main.43ee40ac.css.map",
+    "main.0073f1da.js.map": "/Electric-Payment/static/js/main.0073f1da.js.map",
+    "787.c0c7c225.chunk.js.map": "/Electric-Payment/static/js/787.c0c7c225.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.43ee40ac.css",
+    "static/js/main.0073f1da.js"
+  ]
+}
