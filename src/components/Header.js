@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { LinkContainer } from "react-router-bootstrap";
+import { useLocation } from "react-router-dom";
 import { logout } from "../actions/electricActions";
 import { useI18n } from "../contexts/I18nContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,6 +12,11 @@ const Header = () => {
   const dispatch = useDispatch();
   const { t, lang, setLang, dir } = useI18n();
   const { user: userInfo } = useAuth();
+  const { pathname } = useLocation();
+  const [expanded, setExpanded] = useState(false);
+
+  // Close the mobile menu after navigating
+  useEffect(() => setExpanded(false), [pathname]);
 
   const logoutHandler = () => {
     dispatch(logout());
@@ -22,6 +28,8 @@ const Header = () => {
       variant="dark"
       expand="lg"
       dir={dir}
+      expanded={expanded}
+      onToggle={setExpanded}
     >
       <Container>
         <div className="d-flex align-items-center justify-content-between w-100">
@@ -41,6 +49,7 @@ const Header = () => {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav
             className={(dir === "rtl" ? "me-auto" : "ms-auto") + " text-nowrap"}
+            onClick={() => setExpanded(false)}
           >
             {userInfo ? (
               <>

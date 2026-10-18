@@ -27,7 +27,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy:gh-pages": "PUBLIC_URL=/Electric-Payment react-scripts build && cp build/index.html build/404.html && gh-pages -d build -m \"Deploy to GitHub Pages\""
   },
   "eslintConfig": {
     "extends": [
@@ -46,5 +47,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.1"
   }
 }
